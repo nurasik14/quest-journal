@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { assertValidTimeZone } from "./clock";
 import { DEFAULT_STREAK_BONUS } from "./domain";
+import { AI_PROVIDERS, DEFAULT_BASE_URLS, DEFAULT_MODELS, JSON_MODES, type AiProvider, type JsonMode } from "./ai-http";
 
 export interface Config {
   dataDir: string;
@@ -21,7 +22,19 @@ export interface Config {
    * `PATH` plus `~/.local/bin` (a systemd user unit's PATH is short). `null` = not found → AI falls back to the pool.
    */
   claudeBinResolved: string | null;
+  /**
+   * Which model backend writes quests: `claude-cli` (default, your Claude subscription via `claude -p`),
+   * `anthropic` (API key), `ollama` (local, free) or `openai` (any OpenAI-compatible endpoint).
+   */
+  aiProvider: AiProvider;
   aiModel: string;
+  /** HTTP providers only. Defaults per provider (see `DEFAULT_BASE_URLS`). */
+  aiBaseUrl: string | null;
+  /** HTTP providers only: `AI_API_KEY`, else `ANTHROPIC_API_KEY` (anthropic) / `OPENAI_API_KEY` (openai). */
+  aiApiKey: string | null;
+  aiJsonMode: JsonMode;
+  /** Ollama context window in tokens. */
+  ollamaNumCtx: number;
   aiTimeoutMs: number;
   /** `AI_ENABLED=false` → pool only (no claude spawns). */
   aiEnabled: boolean;
@@ -137,6 +150,23 @@ function str(env: Env, key: string, def: string): string {
   return raw === undefined || raw.trim() === "" ? def : raw.trim();
 }
 
+function oneOf<T extends string>(env: Env, key: string, allowed: readonly T[], def: T): T {
+  const raw = str(env, key, def).toLowerCase();
+  if (!(allowed as readonly string[]).includes(raw)) {
+    throw new ConfigError(`${key} must be one of ${allowed.join(", ")}, got ${JSON.stringify(env[key])}`);
+  }
+  return raw as T;
+}
+
+/** The API key for an HTTP provider. `claude-cli` never gets one (it must stay on the subscription). */
+function aiApiKey(env: Env, provider: AiProvider): string | null {
+  if (provider === "claude-cli") return null;
+  const own = env.AI_API_KEY?.trim();
+  if (own) return own;
+  const fallback = provider === "anthropic" ? env.ANTHROPIC_API_KEY : provider === "openai" ? env.OPENAI_API_KEY : undefined;
+  return fallback?.trim() || null;
+}
+
 /** Strip brackets and port from a host string, lowercase it. */
 export function normalizeHost(h: string): string {
   let s = h.trim().toLowerCase();
@@ -185,6 +215,7 @@ export function loadConfig(env: Env = process.env): Config {
     ),
   );
   const claudeBin = str(env, "CLAUDE_BIN", "claude");
+  const aiProvider = oneOf(env, "AI_PROVIDER", AI_PROVIDERS, "claude-cli");
 
   return {
     dataDir,
@@ -195,8 +226,14 @@ export function loadConfig(env: Env = process.env): Config {
     allowedHosts,
     claudeBin,
     claudeBinResolved: resolveClaudeBin(claudeBin, env),
-    aiModel: str(env, "AI_MODEL", "sonnet"),
-    aiTimeoutMs: int(env, "AI_TIMEOUT_MS", 60_000, 1_000, 600_000),
+    aiProvider,
+    aiModel: str(env, "AI_MODEL", DEFAULT_MODELS[aiProvider]),
+    aiBaseUrl: aiProvider === "claude-cli" ? null : str(env, "AI_BASE_URL", DEFAULT_BASE_URLS[aiProvider]),
+    aiApiKey: aiApiKey(env, aiProvider),
+    aiJsonMode: oneOf(env, "AI_JSON_MODE", JSON_MODES, "schema"),
+    ollamaNumCtx: int(env, "OLLAMA_NUM_CTX", 16_384, 2_048, 1_048_576),
+    // Local models on a laptop are slower than Claude: give them more time by default.
+    aiTimeoutMs: int(env, "AI_TIMEOUT_MS", aiProvider === "ollama" ? 180_000 : 60_000, 1_000, 600_000),
     aiEnabled: bool(env, "AI_ENABLED", true),
     aiBossOnOpen: bool(env, "AI_BOSS_ON_OPEN", true),
     gitEnabled: bool(env, "GIT_ENABLED", true),

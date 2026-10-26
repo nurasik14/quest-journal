@@ -17,7 +17,7 @@ describe("psychologist §F copy truth table (verbatim)", () => {
     for (const c of ["invalid_output", "ai_error"]) {
       expect(fallbackNote(c)).toBe("From the apothecary's own shelf today: Claude's draft didn't fit your rules, so these come from your saved pool.");
     }
-    expect(fallbackNote("claude_not_logged_in")).toBe("From the apothecary's own shelf today: Claude needs you to log in again on the computer.");
+    expect(fallbackNote("claude_not_logged_in")).toBe("From the apothecary's own shelf today: the model needs a fresh login (or a working API key) on the computer.");
   });
   test("reflect, care, stale, draft, onboarding strings", () => {
     expect(COPY.reflectNone).toBe("Nothing new to note today.");

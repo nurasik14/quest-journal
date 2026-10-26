@@ -10,7 +10,7 @@ export async function main(): Promise<void> {
   const config = loadConfig();
   const bw = bindWarning(config.host);
   if (bw) console.warn(bw);
-  if (config.aiEnabled) {
+  if (config.aiEnabled && config.aiProvider === "claude-cli") {
     if (config.claudeBinResolved) console.log(`[config] claude: ${config.claudeBinResolved}`);
     else console.warn(`[config] claude not found (CLAUDE_BIN=${config.claudeBin}, searched PATH and ~/.local/bin): quests come from the pool.`);
   }

@@ -93,7 +93,7 @@ export const COPY = {
     "From the apothecary's own shelf today: Claude couldn't answer, so these come from your saved pool.",
   fallbackDidntFit:
     "From the apothecary's own shelf today: Claude's draft didn't fit your rules, so these come from your saved pool.",
-  fallbackLogin: "From the apothecary's own shelf today: Claude needs you to log in again on the computer.",
+  fallbackLogin: "From the apothecary's own shelf today: the model needs a fresh login (or a working API key) on the computer.",
 
   // ---- M4: onboarding (designer-AC1–8, psychologist-AC1–4)
   onboardingTitle: 'Welcome to the apothecary',

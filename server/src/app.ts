@@ -9,6 +9,7 @@ import { normalizeHost, type Config } from "./config";
 import { StoreError } from "./errors";
 import type { Git } from "./git";
 import { createAiMonitor, createClaudeRunner, type AiMonitor, type AiRunner } from "./ai";
+import { createAnthropicRunner, createOllamaRunner, createOpenAiRunner } from "./ai-http";
 import { createGenerator } from "./generation";
 import { createJobs, type Jobs } from "./jobs";
 import { createKbService, decideBody, kbPutBody, onboardingBody, PROPOSAL_STATUSES } from "./kb";
@@ -46,7 +47,28 @@ export function defaultRunner(config: Config): AiRunner | null {
   if (!config.aiEnabled || config.nodeEnv === "test") return null;
   // A missing binary still gets a runner: every call then reports `enoent` and falls back to the pool,
   // and /api/health says `claude_missing` (architect-AC17).
-  return createClaudeRunner({ bin: config.claudeBinResolved ?? config.claudeBin, model: config.aiModel, nodeEnv: config.nodeEnv });
+  const http = { baseUrl: config.aiBaseUrl ?? "", model: config.aiModel, apiKey: config.aiApiKey, jsonMode: config.aiJsonMode };
+  switch (config.aiProvider) {
+    case "anthropic":
+      return createAnthropicRunner(http);
+    case "ollama":
+      return createOllamaRunner({ ...http, numCtx: config.ollamaNumCtx });
+    case "openai":
+      return createOpenAiRunner(http);
+    default:
+      return createClaudeRunner({ bin: config.claudeBinResolved ?? config.claudeBin, model: config.aiModel, nodeEnv: config.nodeEnv });
+  }
+}
+
+type AiConfigView = Pick<Config, "claudeBin" | "claudeBinResolved" | "aiTimeoutMs"> &
+  Partial<Pick<Config, "aiProvider" | "aiBaseUrl" | "aiApiKey">>;
+
+/** Whether the configured AI can actually run (binary found / key present). Never reads the network. */
+export function aiAvailability(config: AiConfigView): { available: boolean; reason?: string } {
+  const provider = config.aiProvider ?? "claude-cli";
+  if (provider === "claude-cli") return config.claudeBinResolved === null ? { available: false, reason: "claude_missing" } : { available: true };
+  if (provider === "anthropic" && !config.aiApiKey) return { available: false, reason: "api_key_missing" };
+  return { available: true };
 }
 
 /**
@@ -55,9 +77,16 @@ export function defaultRunner(config: Config): AiRunner | null {
  */
 export function aiStartupLine(
   ai: { model: string } | null,
-  config: Pick<Config, "claudeBin" | "claudeBinResolved" | "aiTimeoutMs">,
+  config: AiConfigView,
 ): string {
   if (!ai) return "off (pool only)";
+  const provider = config.aiProvider ?? "claude-cli";
+  if (provider !== "claude-cli") {
+    if (!aiAvailability(config).available) {
+      return `${provider} API key NOT SET (AI_API_KEY or ANTHROPIC_API_KEY), so quests come from the pool until it is`;
+    }
+    return `${provider} at ${config.aiBaseUrl}, model ${ai.model}, timeout ${config.aiTimeoutMs} ms`;
+  }
   if (config.claudeBinResolved === null) {
     return `claude NOT FOUND ("${config.claudeBin}" is not on PATH), so quests come from the pool until it is installed`;
   }
@@ -191,12 +220,15 @@ export function createApp(deps: AppDeps) {
       rollover_hour: config.rolloverHour,
       data_dir_ok: dataDirOk,
       git: git.status(),
+      // Kept under the historical name `claude`; `provider` says which backend is in use.
       claude: {
-        bin: config.claudeBinResolved,
-        ...(config.claudeBinResolved === null ? { reason: "claude_missing" } : {}),
+        provider: config.aiProvider,
+        bin: config.aiProvider === "claude-cli" ? config.claudeBinResolved : null,
+        ...(config.aiProvider !== "claude-cli" ? { base_url: config.aiBaseUrl } : {}),
+        ...(aiAvailability(config).reason ? { reason: aiAvailability(config).reason } : {}),
         enabled: ai !== null,
-        /** NIT-2: `enabled` = AI on by config; `available` = it can actually run (binary found). */
-        available: ai !== null && config.claudeBinResolved !== null,
+        /** NIT-2: `enabled` = AI on by config; `available` = it can actually run (binary found / key set). */
+        available: ai !== null && aiAvailability(config).available,
         model: ai?.model ?? null,
         ...monitor.status(),
         reflect_flags: kb.reflectFlags(),
