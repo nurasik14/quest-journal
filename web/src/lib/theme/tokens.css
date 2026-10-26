@@ -1,0 +1,827 @@
+/* ==========================================================================
+   Quest Journal: "Maomao's herbal notebook" design tokens
+   Source of truth: docs/design/design-system.md (contrast table lives there).
+
+   The interface is a leaf of a thread-bound apothecary's notebook: unbleached
+   paper, sumi ink, vermilion ruling (朱絲欄) and brush labels in the margin,
+   the conventions of real Ming/Qing woodblock herbals. Maomao's green and
+   Jinshi's violet are the two character colours.
+
+   Theme selection:
+     - default            → follows prefers-color-scheme
+     - [data-theme=light] → paper by day
+     - [data-theme=dark]  → "by lamplight"
+   Motion:
+     - prefers-reduced-motion: reduce, or [data-motion=reduce] on <html>,
+       collapses every duration token to ~0 (components also swap transforms
+       for fades).
+   Fonts: ./fonts.css (self-hosted subsets), imported by main.ts.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Theme-independent tokens
+   -------------------------------------------------------------------------- */
+:root {
+  /* ---- Typography ---- */
+  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Noto Serif CJK JP",
+    "Songti SC", "Noto Serif", Georgia, serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans CJK JP",
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Maomao's annotations: a reading Mincho, never grey microtext */
+  --font-note: var(--font-display);
+  --font-seal: "Shippori Mincho B1", "Hiragino Mincho ProN", "Songti SC", serif;
+  /* Vertical margin labels (kanji only; falls back to the Mincho) */
+  --font-brush: "Yuji Syuku", "Shippori Mincho B1", "Hiragino Mincho ProN", serif;
+
+  /* Type scale: mobile-first, ratio ≈ 1.2; the top two steps grow on wide screens */
+  --fs-xs: 0.8125rem;   /* 13px: metadata, legends (never body copy) */
+  --fs-sm: 0.875rem;    /* 14px: secondary text, chips */
+  --fs-base: 1rem;      /* 16px: body, inputs (16px stops iOS zoom) */
+  --fs-md: 1.125rem;    /* 18px: field labels */
+  --fs-lg: 1.375rem;    /* 22px: section headings */
+  --fs-xl: clamp(1.625rem, 1.4rem + 1.2vw, 2rem);      /* 26→32: page titles */
+  --fs-2xl: clamp(2.125rem, 1.8rem + 1.8vw, 2.75rem);  /* 34→44: the date */
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-body: 1.6;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-display: 700;
+  --fw-display-heavy: 800;
+
+  --tracking-display: 0.01em;
+  --tracking-caps: 0.08em;
+
+  /* ---- Spacing (4px base) ---- */
+  --sp-0: 0;
+  --sp-1: 0.25rem;  /* 4 */
+  --sp-2: 0.5rem;   /* 8 */
+  --sp-3: 0.75rem;  /* 12 */
+  --sp-4: 1rem;     /* 16: the gutter */
+  --sp-5: 1.5rem;   /* 24 */
+  --sp-6: 2rem;     /* 32 */
+  --sp-7: 3rem;     /* 48 */
+  --sp-8: 4rem;     /* 64 */
+  --gutter: var(--sp-4);
+  --tap: 48px;           /* minimum touch target (WCAG 2.5.8 needs 24; we use 48) */
+  --tap-min: 44px;       /* absolute floor for dense rows */
+  --content-max: 36rem;  /* single-column reading width */
+  --nav-height: 64px;    /* bottom index tabs, excl. safe-area */
+  --margin-col: 2.5rem;  /* the vertical label column of an entry */
+
+  /* ---- Radii: paper is cut square; only seals and fans are round ---- */
+  --r-xs: 1px;
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 6px;
+  --r-pill: 999px;
+  --r-round: 50%;
+  --r-seal: 3px;
+
+  /* ---- Borders ---- */
+  --bw-hair: 1px;
+  --bw-line: 1.5px;
+  --bw-frame: 3px;
+
+  /* ---- Motion ---- */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+  --dur-stamp: 520ms;
+  --dur-unroll: 520ms;
+  --dur-sticker: 360ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);          /* default: ink settles */
+  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);
+  --ease-stamp: cubic-bezier(0.34, 1.45, 0.55, 1);     /* slight overshoot */
+  --ease-unroll: cubic-bezier(0.25, 0.9, 0.3, 1);
+
+  /* ---- Z-index ---- */
+  --z-decor: 0;
+  --z-content: 1;
+  --z-seal: 2;
+  --z-sticky: 10;
+  --z-nav: 20;
+  --z-toast: 30;
+  --z-overlay: 40;
+
+  /* ---- Real images (gitignored, credited in IMAGE_SOURCES.md). Paintings
+         and woodblock plates from the period the series borrows from; a
+         missing file simply doesn't paint, every use stacks a colour under. ---- */
+  --qj-img-band-evening: url("/decor/img/band-evening.webp");   /* 宮樂圖, Tang court ladies at an evening banquet */
+  --qj-img-band-garden: url("/decor/img/band-garden.webp");     /* 簪花仕女圖, Zhou Fang: consorts in the garden */
+  --qj-img-band-notes: url("/decor/img/band-notes.webp");       /* 本草綱目, 1590 first edition, opening page */
+  --qj-img-hero-consorts: url("/decor/img/hero-consorts.webp"); /* 簪花仕女圖, the round-fan detail */
+  --qj-img-loader-pestle: url("/decor/img/loader-pestle.webp"); /* 搗練圖, court ladies with pestles */
+  --qj-img-drawers: url("/decor/img/apothecary-drawers.webp");  /* a real TCM drawer cabinet */
+
+  /* ---- SVG fallbacks / icon masks (override if served under a sub-path) ---- */
+  --qj-decor-lattice-ice: url("/decor/lattice-ice.svg");
+  --qj-decor-lattice-coin: url("/decor/lattice-coin.svg");
+  --qj-decor-lattice-fret: url("/decor/lattice-fret.svg");
+  --qj-decor-lattice-corner: url("/decor/lattice-corner.svg");
+  --qj-decor-lantern: url("/decor/lantern.svg");
+  --qj-decor-plum-blossom: url("/decor/plum-blossom.svg");
+  --qj-decor-plum-branch: url("/decor/plum-branch.svg");
+  --qj-decor-ginkgo: url("/decor/ginkgo.svg");
+  --qj-decor-mortar-pestle: url("/decor/mortar-pestle.svg");
+  --qj-decor-moon-gate: url("/decor/moon-gate.svg");
+  --qj-decor-herb-sprig: url("/decor/herb-sprig.svg");
+  --qj-decor-sycee: url("/decor/sycee.svg");
+  --qj-decor-cloud: url("/decor/cloud.svg");
+  --qj-decor-cat: url("/decor/cat.svg");
+  --qj-decor-leaf: url("/decor/leaf.svg");
+  --qj-decor-scroll: url("/decor/scroll.svg");
+  --qj-decor-brush: url("/decor/brush.svg");
+  --qj-decor-seal-grain: url("/decor/seal-grain.svg");
+  --qj-decor-teacup: url("/decor/teacup.svg");
+  --qj-decor-book: url("/decor/book.svg");
+  --qj-decor-fan: url("/decor/fan.svg");
+  --qj-decor-footprints: url("/decor/footprints.svg");
+}
+
+/* --------------------------------------------------------------------------
+   2. Light theme: unbleached paper by day (default)
+   -------------------------------------------------------------------------- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* Brand palette */
+  --sumi: #2a251f;          /* ink: warm lamp-black, not green */
+  --jade: #3f7d5c;          /* Maomao's robe: fills, icons (non-text ≥3:1) */
+  --jade-deep: #2f6b4c;     /* primary button bg (5.85:1 with --on-accent) */
+  --jade-ink: #2a6346;      /* jade TEXT (5.91:1 on paper) */
+  --celadon: #a8c8b0;
+  --celadon-soft: #e2ebdf;
+  --herb-dark: var(--sumi);
+  --paper: #f3ead6;         /* unbleached page */
+  --paper-light: #fbf6ea;   /* a fresh leaf (cards, inputs) */
+  --paper-deep: #ebdfc5;    /* wells, disabled */
+  --desk: #e6d8b8;          /* the cover cloth / tabs behind the page */
+  --vermilion: #ad3326;     /* 朱: seals, ruling, errors; text-safe (5.94:1) */
+  --vermilion-soft: #f5e1d9;
+  --rule: #c4685a;          /* 朱絲欄 hairlines: decorative only */
+  --rule-faint: rgb(173 51 38 / 0.28);
+  --gold: #b8913f;          /* decoration only */
+  --gold-ink: #6f5622;
+  --gold-soft: #f1e5c4;
+  --silver: #a3a7ab;        /* the tael ingot: silver, as the name says */
+  --silver-edge: #6f7377;
+  --plum: #5d4a87;          /* Jinshi's violet (6.97:1 on a leaf) */
+  --plum-soft: #ece6f3;
+
+  /* Semantic roles: components use THESE */
+  --bg: var(--paper);
+  --surface: var(--paper-light);
+  --surface-sunk: var(--paper-deep);
+  --surface-tint: var(--celadon-soft);
+  --ink: var(--sumi);
+  --ink-muted: #5b5246;     /* 6.41:1 on bg */
+  --ink-faint: #9a8e78;     /* decoration/disabled only, never required text */
+  --line: #d9c9a8;          /* decorative dividers */
+  --line-strong: #857a64;   /* input borders, 3.53:1 (≥3:1 non-text) */
+
+  --accent: var(--jade-deep);
+  --accent-ink: var(--jade-ink);
+  --on-accent: var(--paper-light);
+  --accent-soft: var(--celadon-soft);
+
+  --seal: var(--vermilion);
+  --on-seal: var(--paper-light);
+  --seal-soft: var(--vermilion-soft);
+
+  --coin: var(--silver);
+  --coin-ink: #5a4f3c;      /* 6.45:1 on --coin-soft */
+  --coin-soft: #ece6d8;
+  --coin-edge: var(--silver-edge);
+
+  /* The weekly commission is Jinshi's: violet, not gold */
+  --boss: var(--plum);
+  --boss-ink: var(--plum);
+  --boss-soft: var(--plum-soft);
+
+  --accent-2: var(--plum);
+  --accent-2-soft: var(--plum-soft);
+
+  --focus-ring: var(--plum);
+  --danger-ink: var(--vermilion);
+  --danger-soft: var(--vermilion-soft);
+  --info-soft: var(--celadon-soft);
+
+  --rod: #6b4a2b;           /* fan handles, cords */
+  --rod-cap: var(--gold);
+  --thread: #3b4a6b;        /* indigo binding thread */
+  --wood: #8a5f3c;          /* drawer fronts of the medicine cabinet (decorative) */
+  --wood-edge: #5e3f27;
+
+  /* Garden heatmap (Archive): unplanted → full bloom */
+  --garden-0: transparent;
+  --garden-1: #ebe3c9;
+  --garden-2: #dbe2c4;
+  --garden-3: #b5cfa9;
+  --garden-4: #84b28c;
+  --garden-5: #2a5f43;
+  --garden-ink-1: var(--sumi);
+  --garden-ink-2: var(--sumi);
+  --garden-ink-3: var(--sumi);
+  --garden-ink-4: var(--sumi);
+  --garden-ink-5: var(--paper-light);
+  --garden-empty-line: var(--line-strong);
+
+  /* Category accents: the dot beside the margin label only; text stays --ink */
+  --cat-body: #b5543f;
+  --cat-mind: #3f7d5c;
+  --cat-social: #7a4a6b;
+  --cat-creative: #34557a;
+  --cat-adventure: #b0832c;
+  --cat-care: #6f9c86;
+  --cat-learning: #2e6f73;
+  --cat-treat: #c0687e;
+  --cat-chores: #7a6a4f;
+
+  /* Elevation: a page lies on the desk; nothing floats much */
+  --shadow-1: 0 1px 0 rgb(60 40 20 / 0.08);
+  --shadow-2: 0 1px 0 rgb(60 40 20 / 0.06), 0 6px 14px -10px rgb(60 40 20 / 0.45);
+  --shadow-3: 0 2px 0 rgb(60 40 20 / 0.05), 0 18px 40px -16px rgb(60 40 20 / 0.5);
+  --shadow-inset: inset 0 1px 2px rgb(60 40 20 / 0.12);
+  --glow-lantern: 0 0 0 transparent;
+  --glow-seal: 0 0 0 transparent;
+
+  /* Paper: grain + long fibres (generated, so no tiling seams) */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .16 .22 0 0 0 -.07'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --fibers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .14' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .22 .32 0 0 0 -.16'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --vignette: radial-gradient(120% 90% at 50% 0%, transparent 60%, rgb(120 90 40 / 0.08) 100%);
+  --photo-filter: sepia(0.08);
+  --photo-scrim: rgb(243 234 214 / 0);
+  --plate-blend: multiply;
+}
+
+/* --------------------------------------------------------------------------
+   3. Dark theme: "by lamplight". Ink-stone black, paper-coloured ink, the
+      vermilion and violet lifted so they read under a lamp.
+      Declared twice (media query + attribute) because CSS cannot share a
+      block between them. Keep the two blocks identical.
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --sumi: #ece3cb;
+    --jade: #86bf9b;
+    --jade-deep: #86bf9b;
+    --jade-ink: #96cba9;
+    --celadon: #2c4537;
+    --celadon-soft: #1c2a22;
+    --herb-dark: var(--sumi);
+    --paper: #15120e;
+    --paper-light: #1e1a15;
+    --paper-deep: #100d0a;
+    --desk: #0c0a08;
+    --vermilion: #e3786a;
+    --vermilion-soft: #3a1f1a;
+    --rule: #8d4a40;
+    --rule-faint: rgb(227 120 106 / 0.22);
+    --gold: #e3bd62;
+    --gold-ink: #e3bd62;
+    --gold-soft: #2a2414;
+    --silver: #c9ccd1;
+    --silver-edge: #8e9297;
+    --plum: #bba7e0;
+    --plum-soft: #241f2e;
+
+    --bg: var(--paper);
+    --surface: var(--paper-light);
+    --surface-sunk: var(--paper-deep);
+    --surface-tint: var(--celadon-soft);
+    --ink: var(--sumi);
+    --ink-muted: #b3a993;
+    --ink-faint: #6d6455;
+    --line: #3a3229;
+    --line-strong: #7d7262;
+
+    --accent: var(--jade-deep);
+    --accent-ink: var(--jade-ink);
+    --on-accent: #15120e;
+    --accent-soft: var(--celadon-soft);
+
+    --seal: var(--vermilion);
+    --on-seal: #15120e;
+    --seal-soft: var(--vermilion-soft);
+
+    --coin: var(--silver);
+    --coin-ink: #d9d1bd;
+    --coin-soft: #24211c;
+    --coin-edge: var(--silver-edge);
+
+    --boss: var(--plum);
+    --boss-ink: var(--plum);
+    --boss-soft: var(--plum-soft);
+
+    --accent-2: var(--plum);
+    --accent-2-soft: var(--plum-soft);
+
+    --focus-ring: var(--gold);
+    --danger-ink: var(--vermilion);
+    --danger-soft: var(--vermilion-soft);
+    --info-soft: var(--celadon-soft);
+
+    --rod: #3b2a1a;
+    --rod-cap: var(--gold);
+    --thread: #8fa3cf;
+    --wood: #4a3322;
+    --wood-edge: #2c1e14;
+
+    --garden-0: transparent;
+    --garden-1: #221d17;
+    --garden-2: #22392c;
+    --garden-3: #2b4a37;
+    --garden-4: #5f9a72;
+    --garden-5: #9fd0ae;
+    --garden-ink-1: #ece3cb;
+    --garden-ink-2: #ece3cb;
+    --garden-ink-3: #ece3cb;
+    --garden-ink-4: #15120e;
+    --garden-ink-5: #15120e;
+    --garden-empty-line: var(--line-strong);
+
+    --cat-body: #e08a74;
+    --cat-mind: #86bf9b;
+    --cat-social: #c9a0bd;
+    --cat-creative: #8fb0d6;
+    --cat-adventure: #e3bd62;
+    --cat-care: #9cc7b2;
+    --cat-learning: #7cc2c4;
+    --cat-treat: #e7a3b4;
+    --cat-chores: #c2b08a;
+
+    --shadow-1: 0 1px 0 rgb(0 0 0 / 0.35);
+    --shadow-2: 0 1px 0 rgb(0 0 0 / 0.3), 0 10px 24px -12px rgb(0 0 0 / 0.85);
+    --shadow-3: 0 2px 0 rgb(0 0 0 / 0.3), 0 20px 44px -16px rgb(0 0 0 / 0.9);
+    --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 0.5);
+    --glow-lantern: 0 0 24px -6px rgb(227 189 98 / 0.28);
+    --glow-seal: 0 0 0 transparent;
+
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .86 0 0 0 0 .72 .10 0 0 0 -.03'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --fibers: none;
+    --vignette: radial-gradient(90% 60% at 50% -5%, rgb(227 189 98 / 0.08), transparent 65%);
+    --photo-filter: brightness(0.8) saturate(0.85);
+    --photo-scrim: rgb(21 18 14 / 0.35);
+    --plate-blend: normal;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --sumi: #ece3cb;
+  --jade: #86bf9b;
+  --jade-deep: #86bf9b;
+  --jade-ink: #96cba9;
+  --celadon: #2c4537;
+  --celadon-soft: #1c2a22;
+  --herb-dark: var(--sumi);
+  --paper: #15120e;
+  --paper-light: #1e1a15;
+  --paper-deep: #100d0a;
+  --desk: #0c0a08;
+  --vermilion: #e3786a;
+  --vermilion-soft: #3a1f1a;
+  --rule: #8d4a40;
+  --rule-faint: rgb(227 120 106 / 0.22);
+  --gold: #e3bd62;
+  --gold-ink: #e3bd62;
+  --gold-soft: #2a2414;
+  --silver: #c9ccd1;
+  --silver-edge: #8e9297;
+  --plum: #bba7e0;
+  --plum-soft: #241f2e;
+
+  --bg: var(--paper);
+  --surface: var(--paper-light);
+  --surface-sunk: var(--paper-deep);
+  --surface-tint: var(--celadon-soft);
+  --ink: var(--sumi);
+  --ink-muted: #b3a993;
+  --ink-faint: #6d6455;
+  --line: #3a3229;
+  --line-strong: #7d7262;
+
+  --accent: var(--jade-deep);
+  --accent-ink: var(--jade-ink);
+  --on-accent: #15120e;
+  --accent-soft: var(--celadon-soft);
+
+  --seal: var(--vermilion);
+  --on-seal: #15120e;
+  --seal-soft: var(--vermilion-soft);
+
+  --coin: var(--silver);
+  --coin-ink: #d9d1bd;
+  --coin-soft: #24211c;
+  --coin-edge: var(--silver-edge);
+
+  --boss: var(--plum);
+  --boss-ink: var(--plum);
+  --boss-soft: var(--plum-soft);
+
+  --accent-2: var(--plum);
+  --accent-2-soft: var(--plum-soft);
+
+  --focus-ring: var(--gold);
+  --danger-ink: var(--vermilion);
+  --danger-soft: var(--vermilion-soft);
+  --info-soft: var(--celadon-soft);
+
+  --rod: #3b2a1a;
+  --rod-cap: var(--gold);
+  --thread: #8fa3cf;
+  --wood: #4a3322;
+  --wood-edge: #2c1e14;
+
+  --garden-0: transparent;
+  --garden-1: #221d17;
+  --garden-2: #22392c;
+  --garden-3: #2b4a37;
+  --garden-4: #5f9a72;
+  --garden-5: #9fd0ae;
+  --garden-ink-1: #ece3cb;
+  --garden-ink-2: #ece3cb;
+  --garden-ink-3: #ece3cb;
+  --garden-ink-4: #15120e;
+  --garden-ink-5: #15120e;
+  --garden-empty-line: var(--line-strong);
+
+  --cat-body: #e08a74;
+  --cat-mind: #86bf9b;
+  --cat-social: #c9a0bd;
+  --cat-creative: #8fb0d6;
+  --cat-adventure: #e3bd62;
+  --cat-care: #9cc7b2;
+  --cat-learning: #7cc2c4;
+  --cat-treat: #e7a3b4;
+  --cat-chores: #c2b08a;
+
+  --shadow-1: 0 1px 0 rgb(0 0 0 / 0.35);
+  --shadow-2: 0 1px 0 rgb(0 0 0 / 0.3), 0 10px 24px -12px rgb(0 0 0 / 0.85);
+  --shadow-3: 0 2px 0 rgb(0 0 0 / 0.3), 0 20px 44px -16px rgb(0 0 0 / 0.9);
+  --shadow-inset: inset 0 1px 3px rgb(0 0 0 / 0.5);
+  --glow-lantern: 0 0 24px -6px rgb(227 189 98 / 0.28);
+  --glow-seal: 0 0 0 transparent;
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .86 0 0 0 0 .72 .10 0 0 0 -.03'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --fibers: none;
+  --vignette: radial-gradient(90% 60% at 50% -5%, rgb(227 189 98 / 0.08), transparent 65%);
+  --photo-filter: brightness(0.8) saturate(0.85);
+  --photo-scrim: rgb(21 18 14 / 0.35);
+  --plate-blend: normal;
+}
+
+/* --------------------------------------------------------------------------
+   4. Reduced motion: collapse durations. Components additionally swap
+      transforms for opacity fades inside their own media queries.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) {
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-unroll: 1ms;
+    --dur-stamp: 160ms;   /* stamp still fades in so completion is perceivable */
+    --dur-sticker: 160ms;
+  }
+}
+:root[data-motion="reduce"] {
+  --dur-fast: 1ms;
+  --dur-base: 1ms;
+  --dur-slow: 1ms;
+  --dur-unroll: 1ms;
+  --dur-stamp: 160ms;
+  --dur-sticker: 160ms;
+}
+
+/* --------------------------------------------------------------------------
+   5. Shared keyframes (referenced by name from components)
+   -------------------------------------------------------------------------- */
+@keyframes qj-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes qj-rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes qj-sway {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+/* ink soaking into paper: used when a leaf first appears */
+@keyframes qj-ink-in {
+  from { opacity: 0; filter: blur(1.2px); }
+  to { opacity: 1; filter: none; }
+}
+
+/* --------------------------------------------------------------------------
+   6. Minimal base layer (zero specificity via :where so the app can override)
+   -------------------------------------------------------------------------- */
+:where(html) {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background-color: var(--desk);
+}
+:where(body) {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  background-image: var(--vignette), var(--grain), var(--fibers);
+  background-attachment: fixed, scroll, scroll;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+:where(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  margin: 0;
+  text-wrap: balance;
+}
+:where(h1) { font-size: var(--fs-xl); }
+:where(h2) { font-size: var(--fs-lg); }
+:where(h3) { font-size: var(--fs-md); }
+:where(p) { margin: 0; text-wrap: pretty; }
+:where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+:where(a) { color: var(--accent-ink); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+:where(:focus-visible) {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:where(::selection) {
+  background: color-mix(in srgb, var(--vermilion) 22%, transparent);
+}
+:where(.tabular, [data-tabular]) { font-variant-numeric: tabular-nums lining-nums; }
+
+/* Utility: hide visually, keep for screen readers */
+.qj-sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Vertical brush label (margin columns, tabs). Kanji only; always aria-hidden
+   or paired with an English equivalent, since few readers parse it. */
+.qj-brush {
+  font-family: var(--font-brush);
+  font-weight: 400;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   7. Shared control styles (buttons, inputs, chips)
+      Plain classes so screens don't restyle ad hoc. See design-system.md §6.
+   -------------------------------------------------------------------------- */
+.qj-btn {
+  --_bg: var(--surface);
+  --_fg: var(--ink);
+  --_bd: var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 var(--sp-4);
+  border: var(--bw-line) solid var(--_bd);
+  border-radius: var(--r-md);
+  background: var(--_bg);
+  color: var(--_fg);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  line-height: 1.1;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.qj-btn:hover { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--_fg) 18%, transparent); }
+.qj-btn:active { transform: translateY(1px); }
+.qj-btn:disabled,
+.qj-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 1;
+  --_bg: var(--surface-sunk);
+  --_fg: var(--ink-muted);
+  --_bd: var(--line);
+  border-style: dashed;     /* never heavier than an enabled button, in both themes */
+  box-shadow: none;
+  transform: none;
+}
+.qj-btn--primary { --_bg: var(--accent); --_fg: var(--on-accent); --_bd: var(--accent); }
+.qj-btn--seal    { --_bg: var(--seal);   --_fg: var(--on-seal);   --_bd: var(--seal); }
+.qj-btn--quiet   { --_bg: transparent;   --_fg: var(--accent-ink); --_bd: transparent; }
+.qj-btn--quiet:hover { --_bg: var(--accent-soft); box-shadow: none; }
+.qj-btn--block   { display: flex; width: 100%; }
+.qj-btn--sm      { min-height: var(--tap-min); padding: 0 var(--sp-3); font-size: var(--fs-sm); }
+
+/* A standalone text link inside a line of copy: looks like a link, taps like a button (≥ 44 px tall). */
+.qj-textlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+}
+/* Toggle buttons: the pressed state is visible in both themes: accent fill + a small check before the label. */
+.qj-btn[aria-pressed="true"] {
+  --_bg: var(--accent);
+  --_fg: var(--on-accent);
+  --_bd: var(--accent);
+}
+.qj-btn[aria-pressed="true"]::before {
+  content: "✓";
+  font-weight: var(--fw-bold);
+}
+.qj-btn--quiet[aria-pressed="true"] {
+  --_bg: var(--surface-sunk);
+  --_fg: var(--ink);
+  --_bd: var(--line-strong);
+}
+.qj-btn--quiet[aria-pressed="true"]:hover { --_bg: var(--surface-sunk); }
+
+/* Chips are paper slips (付箋): square-cut, a darker fold on the left edge */
+.qj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 32px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  border: var(--bw-hair) solid var(--line-strong);
+  border-left-width: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  line-height: 1;
+}
+/* Toggle chips (mood tags, reroll reasons): 44px tall touch target */
+button.qj-chip,
+label.qj-chip { min-height: var(--tap-min); cursor: pointer; }
+.qj-chip[aria-pressed="true"],
+.qj-chip:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: var(--fw-medium);
+}
+.qj-chip[aria-pressed="true"]::before,
+.qj-chip:has(input:checked)::before {
+  content: "✓";
+  font-weight: var(--fw-bold);
+}
+
+.qj-field { display: grid; gap: var(--sp-2); }
+.qj-label {
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
+  font-size: var(--fs-md);
+  color: var(--ink);
+}
+.qj-hint { font-size: var(--fs-sm); color: var(--ink-muted); }
+.qj-input,
+.qj-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--tap);
+  padding: var(--sp-3);
+  border: var(--bw-line) solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-base);       /* ≥16px: no iOS zoom */
+  line-height: var(--lh-body);
+  box-shadow: var(--shadow-inset);
+}
+.qj-textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+  font-family: var(--font-note);
+  /* vermilion ruled lines, like the ledger paper itself */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.6em - 1px),
+    var(--rule-faint) calc(1.6em - 1px),
+    var(--rule-faint) 1.6em
+  );
+  background-attachment: local;
+  background-position: 0 calc(var(--sp-3) - 1px);
+}
+.qj-input::placeholder,
+.qj-textarea::placeholder { color: var(--ink-muted); opacity: 1; }
+
+/* Banners: info / fallback / error. Always text, never colour alone; a slip pinned to the page. */
+.qj-banner {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-sm);
+  border: var(--bw-hair) solid var(--line-strong);
+  border-left-width: 4px;
+  background: var(--info-soft);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+.qj-banner--fallback { border-left-color: var(--gold); background: var(--gold-soft); }
+.qj-banner--error    { border-left-color: var(--seal); background: var(--danger-soft); }
+.qj-banner--info     { border-left-color: var(--accent); }
+
+/* --------------------------------------------------------------------------
+   8. The page: one leaf of the notebook.
+      Mobile: the leaf fills the screen, framed by the 四周雙邊 double rule a
+      woodblock page carries (thick outer line, thin inner line).
+      Wide screens: the leaf lies on the cover cloth, stitched on the right
+      edge the way a 線装 book is bound (Chinese books open right-to-left).
+   -------------------------------------------------------------------------- */
+.qj-page {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content-max);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: var(--sp-5) calc(var(--gutter) + 6px)
+    calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + var(--sp-6));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--sp-5);
+}
+/* the double rule, inset from the screen edge; decorative, never intercepts taps */
+.qj-page::before {
+  content: "";
+  position: absolute;
+  inset: 6px 6px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px)) 6px;
+  border: 2px solid var(--rule);
+  outline: 1px solid var(--rule);
+  outline-offset: -5px;
+  pointer-events: none;
+  z-index: var(--z-decor);
+  opacity: 0.75;
+}
+.qj-page > * { position: relative; z-index: var(--z-content); }
+
+@media (min-width: 42rem) {
+  :where(body) {
+    background-color: var(--desk);
+    background-image: var(--grain);
+  }
+  .qj-page {
+    margin-block: var(--sp-5) 0;
+    min-height: calc(100dvh - var(--sp-5));
+    padding-inline: calc(var(--sp-6) + 6px);
+    background-color: var(--bg);
+    background-image: var(--grain), var(--fibers);
+    box-shadow: var(--shadow-3);
+  }
+  .qj-page::before {
+    inset: 10px 10px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px)) 10px;
+  }
+  /* 線装 binding on the fore-edge: four stitch holes, the indigo thread running between them and
+     wrapping over the edge at each hole (books bound this way open right-to-left) */
+  .qj-page::after {
+    content: "";
+    position: absolute;
+    top: var(--sp-6);
+    bottom: calc(var(--nav-height) + var(--sp-6));
+    right: -3px;
+    width: 12px;
+    --_t: var(--thread);
+    background:
+      radial-gradient(circle at 4px 9px, var(--_t) 0 2.6px, transparent 3.2px) 0 0 / 12px 10rem repeat-y,
+      linear-gradient(to bottom, transparent 8px, var(--_t) 8px, var(--_t) 10px, transparent 10px) 4px 0 / 8px 10rem repeat-y,
+      linear-gradient(var(--_t), var(--_t)) 3px 0 / 2px 100% no-repeat;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+}

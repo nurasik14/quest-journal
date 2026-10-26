@@ -1,0 +1,517 @@
+# Fallback quest pool — used when `claude -p` is unavailable or fails validation.
+# Fields: id, title, why, category, difficulty (easy|medium|hard), minutes (honest estimate; lets a "too long" swap
+# pick something genuinely shorter, H1 fix; omitted = unknown, e.g. the rest day), coins, cooldown_days, cost (free|low|medium; omitted = free)
+# Categories: body, mind, social, creative, adventure, care (care/rest), learning, treat (treat-yourself)
+# Coins follow difficulty: easy 10, medium 20, hard 35 (server may recompute from difficulty).
+# 48 quests: 6 per category; per category roughly 3 easy / 2 medium / 1 hard so every energy level can be filled.
+quests:
+  # ---------- body ----------
+  - id: body-walk-20
+    title: "Take a 20-minute walk without headphones"
+    why: "Ears that only hear podcasts forget what the wind sounds like. Go collect three sounds for me."
+    category: body
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 2
+  - id: body-stretch-10
+    title: "Stretch for 10 minutes between two study blocks"
+    why: "A spine bent over a laptop all day grows like a crooked ginseng root. Unbend it."
+    category: body
+    difficulty: easy
+    minutes: 10
+    coins: 10
+    cooldown_days: 1
+  - id: body-water-morning
+    title: "Drink a full glass of water before your first coffee"
+    why: "The cheapest tonic in the palace, and still nobody takes it."
+    category: body
+    difficulty: easy
+    minutes: 2
+    coins: 10
+    cooldown_days: 1
+  - id: body-workout-30
+    title: "Do a 30-minute bodyweight workout: push-ups, squats, plank x3"
+    why: "Muscles are a medicine cabinet you carry around. Restock it."
+    category: body
+    difficulty: medium
+    minutes: 30
+    coins: 20
+    cooldown_days: 2
+  - id: body-walk-to-cafe
+    title: "Walk to a café at least 2 km away instead of taking transport"
+    why: "The coffee tastes better when the legs have paid for it. I've tested this."
+    category: body
+    difficulty: medium
+    minutes: 40
+    coins: 20
+    cooldown_days: 4
+    cost: low
+  - id: body-5k
+    title: "Walk or jog 5 km in one go"
+    why: "A long walk clears the head better than most things I could brew. Most."
+    category: body
+    difficulty: hard
+    minutes: 45
+    coins: 35
+    cooldown_days: 4
+
+  # ---------- mind ----------
+  - id: mind-admin-one
+    title: "Finish one nagging admin task (an email, form or payment)"
+    why: "Small unfinished things fester like an untreated splinter. Pull one out."
+    category: mind
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 2
+  - id: mind-plan-tomorrow
+    title: "Write tomorrow's plan in five lines before bed"
+    why: "A prescription written the night before is half swallowed by morning."
+    category: mind
+    difficulty: easy
+    minutes: 5
+    coins: 10
+    cooldown_days: 1
+  - id: mind-worry-dump
+    title: "Do a 10-minute worry dump, then circle one item to act on"
+    why: "Poisons are less frightening once you've written down their names."
+    category: mind
+    difficulty: easy
+    minutes: 10
+    coins: 10
+    cooldown_days: 3
+  - id: mind-pomodoro-4
+    title: "Do 4 Pomodoros (25/5) on the course you're avoiding most"
+    why: "The bitterest medicine is the one you keep putting back on the shelf."
+    category: mind
+    difficulty: medium
+    minutes: 120
+    coins: 20
+    cooldown_days: 1
+  - id: mind-phone-free-hour
+    title: "Keep the first hour after waking phone-free"
+    why: "Let your own thoughts arrive before everyone else's do."
+    category: mind
+    difficulty: medium
+    minutes: 60
+    coins: 20
+    cooldown_days: 3
+  - id: mind-deep-work-2h
+    title: "Do one 2-hour deep-work block, phone in another room"
+    why: "Two quiet hours do more than six distracted ones. That's arithmetic, not magic."
+    category: mind
+    difficulty: hard
+    minutes: 120
+    coins: 35
+    cooldown_days: 3
+
+  # ---------- social ----------
+  - id: social-message-friend
+    title: "Message a friend you haven't talked to in a month"
+    why: "Friendships dry out like herbs left in the sun. A little water is enough."
+    category: social
+    difficulty: easy
+    minutes: 5
+    coins: 10
+    cooldown_days: 4
+  - id: social-compliment
+    title: "Give someone a specific, genuine compliment"
+    why: "Vague praise is like weak tea. Name the exact thing."
+    category: social
+    difficulty: easy
+    minutes: 2
+    coins: 10
+    cooldown_days: 2
+  - id: social-call-family
+    title: "Call a family member and talk for 10+ minutes"
+    why: "Someone out there wonders whether you're eating properly. Answer them."
+    category: social
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 5
+  - id: social-ask-question
+    title: "Ask one question in a lecture or at office hours"
+    why: "A question asked out loud is worth three you looked up at 2 a.m."
+    category: social
+    difficulty: medium
+    minutes: 5
+    coins: 20
+    cooldown_days: 4
+  - id: social-cafe-invite
+    title: "Invite a classmate to a café co-working session"
+    why: "Studying next to someone is an old trick. Even the palace scribes did it."
+    category: social
+    difficulty: medium
+    minutes: 120
+    coins: 20
+    cooldown_days: 7
+    cost: low
+  - id: social-manga-night
+    title: "Host a manga or anime night with at least 2 people"
+    why: "A story shared with friends lasts longer than one read alone. Bring snacks."
+    category: social
+    difficulty: hard
+    minutes: 180
+    coins: 35
+    cooldown_days: 21
+
+  # ---------- creative ----------
+  - id: creative-panel-sketch
+    title: "Sketch one manga panel of something that happened today"
+    why: "Stick figures are allowed. Even the court painters started with lines."
+    category: creative
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 3
+  - id: creative-playlist
+    title: "Make a 10-song playlist for a manga arc you love"
+    why: "Every good story deserves a soundtrack, even an unofficial one."
+    category: creative
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 7
+  - id: creative-photo-theme
+    title: "Take 5 photos on one theme (green things, lanterns or signs)"
+    why: "A theme turns a walk into a hunt. I'm partial to green things, for professional reasons."
+    category: creative
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 5
+  - id: creative-yonkoma
+    title: "Draw or write a 4-panel comic (yonkoma) about student life"
+    why: "Setup, development, twist, punchline. It works for comics and for poisonings."
+    category: creative
+    difficulty: medium
+    minutes: 45
+    coins: 20
+    cooldown_days: 7
+  - id: creative-mystery-scene
+    title: "Write a 300-word scene in the style of a court-mystery manga"
+    why: "Plant one clue the reader will miss. I always notice them, though."
+    category: creative
+    difficulty: medium
+    minutes: 40
+    coins: 20
+    cooldown_days: 7
+  - id: creative-ml-art
+    title: "Make a small generative piece with a model you trained or fine-tuned"
+    why: "The art is yours if the model learned its habits from you."
+    category: creative
+    difficulty: hard
+    minutes: 150
+    coins: 35
+    cooldown_days: 14
+
+  # ---------- adventure ----------
+  - id: adv-new-route
+    title: "Take a different route home and note three new things"
+    why: "The same path every day makes the eyes lazy. Wake them up."
+    category: adventure
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 3
+  - id: adv-bookstore-browse
+    title: "Browse a bookstore or library manga section for 20 minutes, no buying"
+    why: "Scouting first is cheaper than tasting everything. I'd know."
+    category: adventure
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 7
+  - id: adv-new-dish
+    title: "Order a dish you've never tried before"
+    why: "A new flavor, safely prepared by someone else. The best kind of experiment."
+    category: adventure
+    difficulty: easy
+    minutes: 30
+    coins: 10
+    cooldown_days: 5
+    cost: low
+  - id: adv-new-cafe
+    title: "Visit a café you've never been to and rate it 1–5 herbs"
+    why: "Every café is a field sample. Record your findings in the ledger."
+    category: adventure
+    difficulty: medium
+    minutes: 60
+    coins: 20
+    cooldown_days: 7
+    cost: low
+  - id: adv-museum
+    title: "Visit a museum, gallery or exhibition (free days count)"
+    why: "Other people's obsessions, neatly labeled. Very educational."
+    category: adventure
+    difficulty: medium
+    minutes: 120
+    coins: 20
+    cooldown_days: 14
+    cost: low
+  - id: adv-new-district
+    title: "Spend an afternoon exploring a district you've never been to"
+    why: "Maps lie by omission. Go and see what they left out. Come back before dark."
+    category: adventure
+    difficulty: hard
+    minutes: 180
+    coins: 35
+    cooldown_days: 14
+
+  # ---------- care (care/rest) ----------
+  - id: care-tea-break
+    title: "Take a 15-minute tea break with no screen"
+    why: "Steep the tea and do nothing else. This is medicine, not laziness."
+    category: care
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 1
+  - id: care-tidy-desk
+    title: "Tidy your desk for 15 minutes"
+    why: "An apothecary who can't find her mortar is a danger to everyone."
+    category: care
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 3
+  - id: care-rest-day
+    title: "Rest day: no studying after 18:00, and no guilt"
+    why: "Herbs need to dry before they're useful. So do students."
+    category: care
+    difficulty: easy
+    coins: 10
+    cooldown_days: 6
+  - id: care-nap-20
+    title: "Rest with your eyes closed for 20 minutes"
+    why: "Even the emperor's guards switch shifts. Close your eyes."
+    category: care
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 1
+  - id: care-early-bed
+    title: "Lights out by 23:30, phone charging out of reach"
+    why: "Sleep is the one remedy I can't brew for you."
+    category: care
+    difficulty: medium
+    minutes: 30
+    coins: 20
+    cooldown_days: 1
+  - id: care-cook-meal
+    title: "Cook one proper meal with a vegetable in it"
+    why: "Instant noodles aren't a food group, no matter what the dormitory claims."
+    category: care
+    difficulty: medium
+    minutes: 60
+    coins: 20
+    cooldown_days: 2
+
+  # ---------- learning ----------
+  - id: learn-paper-skim
+    title: "Read one ML paper's abstract and figures, write a 3-line summary"
+    why: "Read the label before the whole bottle. Then decide whether to open it."
+    category: learning
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 2
+  - id: learn-jp-words
+    title: "Learn 10 Japanese words from the manga you're reading now"
+    why: "The words you meet in a story stick better than the ones in a list."
+    category: learning
+    difficulty: easy
+    minutes: 15
+    coins: 10
+    cooldown_days: 2
+  - id: learn-rubber-duck
+    title: "Explain one concept from class out loud in 5 minutes"
+    why: "If you can't explain it to the cat, you don't know it yet."
+    category: learning
+    difficulty: easy
+    minutes: 5
+    coins: 10
+    cooldown_days: 3
+  - id: learn-kaggle-45
+    title: "Spend 45 minutes on a Kaggle dataset or notebook"
+    why: "A dataset is just a garden nobody has weeded yet. Get your hands dirty."
+    category: learning
+    difficulty: medium
+    minutes: 45
+    coins: 20
+    cooldown_days: 3
+  - id: learn-lecture-summary
+    title: "Rewrite today's lecture notes as a one-page summary"
+    why: "Grind the notes down to a fine powder. Only the essential part should remain."
+    category: learning
+    difficulty: medium
+    minutes: 45
+    coins: 20
+    cooldown_days: 2
+  - id: learn-implement-scratch
+    title: "Implement one algorithm from scratch in a notebook (attention, k-means or MLP)"
+    why: "You don't understand a poison until you've isolated it yourself. Same with attention."
+    category: learning
+    difficulty: hard
+    minutes: 120
+    coins: 35
+    cooldown_days: 5
+
+  # ---------- treat (treat-yourself) ----------
+  - id: treat-slow-breakfast
+    title: "Have a slow breakfast: sit down, no phone"
+    why: "Food eaten while scrolling is barely tasted. Wasteful."
+    category: treat
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 3
+  - id: treat-manga-after-hard
+    title: "Read manga for 30 minutes right after your hardest task"
+    why: "Sweet medicine after the bitter dose. That's how I'd prescribe it."
+    category: treat
+    difficulty: easy
+    minutes: 30
+    coins: 10
+    cooldown_days: 2
+  - id: treat-golden-hour
+    title: "Go and watch the golden hour or sunset somewhere nice"
+    why: "The light at that hour is free and it doesn't keep. Go before it ends."
+    category: treat
+    difficulty: easy
+    minutes: 45
+    coins: 10
+    cooldown_days: 4
+  - id: treat-new-genre
+    title: "Read the first chapter of a manga genre you've never tried"
+    why: "You may hate it. Data is data. Report back."
+    category: treat
+    difficulty: easy
+    minutes: 20
+    coins: 10
+    cooldown_days: 7
+  - id: treat-cafe-study
+    title: "Study for an hour at a café you like, and enjoy the drink"
+    why: "Work paired with a pleasure goes down easier. An old apothecary trick."
+    category: treat
+    difficulty: medium
+    minutes: 75
+    coins: 20
+    cooldown_days: 5
+    cost: low
+  - id: treat-anime-earned
+    title: "Watch one anime episode after a finished study block"
+    why: "A reward that comes right after the work tastes the sweetest."
+    category: treat
+    difficulty: easy
+    minutes: 25
+    coins: 10
+    cooldown_days: 2
+
+# Weekly boss pool (fallback for the weekly boss when `claude -p` is unavailable).
+# Added by quest-builder in sprint M1 (backlog B2) from docs/brainstorm/motivation.md §2.2.
+# Fields: id, title, why, category, type (make|learn|explore|connect|restore), checkpoints (≤4).
+# Coins are set by the server (boss tariff), never read from this file.
+boss:
+  - id: boss-cafe-cartographer
+    title: "The Café Cartographer"
+    why: "Three new cafés, one ranking page. A map of where the good brews hide."
+    category: adventure
+    type: explore
+    checkpoints:
+      - "Visit a new café (1 of 3)"
+      - "Visit a new café (2 of 3)"
+      - "Visit a new café (3 of 3)"
+      - "Write a mini-review page ranking them"
+  - id: boss-paper-autopsy
+    title: "Paper Autopsy"
+    why: "Open up one ML paper and see what's actually inside. Gently, like a specimen."
+    category: learning
+    type: learn
+    checkpoints:
+      - "Choose an ML paper"
+      - "Read it fully"
+      - "Reimplement the core idea in a toy notebook"
+      - "Write a 10-bullet explainer"
+  - id: boss-yonkoma-week
+    title: "Yonkoma Week"
+    why: "Four little comics on four different days. Ink keeps better than memory."
+    category: creative
+    type: make
+    checkpoints:
+      - "Draw a 4-panel comic (1 of 4)"
+      - "Draw a 4-panel comic (2 of 4)"
+      - "Draw a 4-panel comic (3 of 4)"
+      - "Draw a 4-panel comic (4 of 4) and show one to a friend"
+  - id: boss-kaggle-trial
+    title: "The Kaggle Trial"
+    why: "A baseline, two improvements, and notes on what helped. Proper experiment records."
+    category: learning
+    type: learn
+    checkpoints:
+      - "Make a baseline submission"
+      - "First improvement iteration"
+      - "Second improvement iteration"
+      - "Write a short note on what helped"
+  - id: boss-five-morning-tonics
+    title: "Five Morning Tonics"
+    why: "Move before ten on four different mornings. The body remembers the dose."
+    category: body
+    type: restore
+    checkpoints:
+      - "Move 20+ minutes before 10:00 (morning 1)"
+      - "Move 20+ minutes before 10:00 (morning 2)"
+      - "Move 20+ minutes before 10:00 (morning 3)"
+      - "Move 20+ minutes before 10:00 (morning 4)"
+  - id: boss-jade-pavilion
+    title: "Gathering in the Jade Pavilion"
+    why: "Host a small manga swap or study night. Good company is an old remedy."
+    category: social
+    type: connect
+    checkpoints:
+      - "Pick a date"
+      - "Invite 2 or more people"
+      - "Host the manga swap or study night"
+      - "Send a thank-you message"
+  - id: boss-exam-antidote
+    title: "The Exam Antidote"
+    why: "For exam weeks: one course, studied properly, then one evening fully off."
+    category: learning
+    type: learn
+    checkpoints:
+      - "Make a summary sheet for one course"
+      - "Do one timed past paper"
+      - "Review your mistakes"
+      - "Take one full rest evening"
+  - id: boss-unknown-district
+    title: "Unknown District Expedition"
+    why: "Pick a district you've never walked. Bring back photos and one ledger page."
+    category: adventure
+    type: explore
+    checkpoints:
+      - "Pick a district"
+      - "Go there"
+      - "Find one café or bookstore"
+      - "Take 10 photos and write one ledger page"
+  - id: boss-spring-cleaning
+    title: "Spring Cleaning of the Apothecary"
+    why: "A tidy workbench makes every remedy easier. Four small sweeps."
+    category: care
+    type: restore
+    checkpoints:
+      - "Clear the desk"
+      - "Do the laundry"
+      - "Clean up Downloads and the desktop"
+      - "Back up your notes"
+  - id: boss-sleep-ledger
+    title: "The Sleep Ledger"
+    why: "In bed by 23:30 on five nights out of seven. Sleep is the strongest tonic I know."
+    category: care
+    type: restore
+    checkpoints:
+      - "In bed by 23:30 on 2 nights"
+      - "In bed by 23:30 on 3 nights"
+      - "In bed by 23:30 on 4 nights"
+      - "In bed by 23:30 on 5 nights"

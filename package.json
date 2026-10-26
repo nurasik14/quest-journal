@@ -1,0 +1,27 @@
+{
+  "name": "quest-journal",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "bun --filter '*' dev",
+    "dev:server": "bun --watch server/src/index.ts",
+    "dev:web": "cd web && bunx vite",
+    "start": "NODE_ENV=production bun server/src/index.ts",
+    "build": "bun run build:web && bun run build:server",
+    "build:web": "cd web && bunx vite build",
+    "build:server": "bun build server/src/index.ts --target=bun --outdir=dist/server",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p . && cd web && bunx svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "econ:sim": "bun server/src/econ-sim.ts",
+    "seed:demo": "bun server/src/seed-demo.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}

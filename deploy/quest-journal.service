@@ -1,0 +1,36 @@
+# Quest Journal as a systemd USER service (architect-AC18). Written by the app repo; NOT installed or enabled.
+# Install (as yourself, no sudo):
+#   mkdir -p ~/.config/systemd/user
+#   cp deploy/quest-journal.service ~/.config/systemd/user/
+#   # if bun is not at ~/.bun/bin/bun, edit ExecStart below to the output of `command -v bun`
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now quest-journal
+#   journalctl --user -u quest-journal -f
+# Optional, so it keeps running while you're logged out: loginctl enable-linger "$USER"
+#
+# It's a user unit on purpose: no User=, so ~/.claude credentials are reachable and `claude -p` uses your Max login.
+# The app binds 127.0.0.1 by default; phones reach it through `tailscale serve` (see README), never `funnel`.
+
+[Unit]
+Description=Quest Journal (daily quests + journal)
+# No After=/Wants=network-online.target: the user manager can't see that system target, so it would do nothing.
+# The app binds 127.0.0.1 and needs no network at start; `tailscale serve` proxies to it whenever tailscaled is up.
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Projects/quest-journal
+# Absolute bun path (a user unit's PATH is short). %h = your home directory.
+ExecStart=%h/.bun/bin/bun server/src/index.ts
+Environment=NODE_ENV=production
+# claude is usually in ~/.local/bin; the app also checks there itself and logs what it found.
+Environment=PATH=%h/.local/bin:%h/.bun/bin:/usr/local/bin:/usr/bin:/bin
+# DATA_DIR, HOST, PORT, TZ, ALLOWED_HOSTS… live in the repo's .env (optional; "-" = ok if missing).
+EnvironmentFile=-%h/Projects/quest-journal/.env
+Restart=on-failure
+RestartSec=5
+# SIGTERM → the app flushes the pending git commit (≤10 s) and kills any claude child (5 s grace).
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

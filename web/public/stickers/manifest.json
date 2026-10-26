@@ -1,0 +1,63 @@
+{
+  "$comment": "Event → sticker mapping for <Sticker event=…>. Files live next to this manifest (gitignored, personal use only; credits in web/public/IMAGE_SOURCES.md). 'files' are tried in pick order; if every file fails to load, the SVG 'fallback' from /decor/<fallback>.svg is shown. 'caption' is optional visible text; stickers themselves are decorative (aria-hidden).",
+  "version": 1,
+  "base": "/stickers/",
+  "pick": "seeded",
+  "events": {
+    "quest_done": {
+      "files": ["maomao-herb.webp", "maomao-chew.webp", "maomao-smug.webp"],
+      "fallback": "herb-sprig",
+      "caption": "Noted in the ledger."
+    },
+    "boss": {
+      "files": ["jinshi-point.webp", "jinshi-serene.webp"],
+      "fallback": "lantern",
+      "caption": "A prescription from the Jade Pavilion."
+    },
+    "boss_done": {
+      "files": ["jinshi-smile.webp", "gaoshun-steady.webp"],
+      "fallback": "lantern",
+      "caption": "The whole week's prescription, filled."
+    },
+    "reroll": {
+      "files": ["cat-calico.webp", "cat-curious.webp", "cat-kitten.webp"],
+      "fallback": "cat",
+      "caption": "The cat knocked that one off the shelf."
+    },
+    "streak": {
+      "files": ["xiaolan-cheer.webp", "xiaolan-smile.webp"],
+      "fallback": "plum-blossom",
+      "caption": "Another week in the ledger."
+    },
+    "low_rating": {
+      "files": ["luomen-kind.webp", "maomao-tired.webp"],
+      "fallback": "ginkgo",
+      "caption": "Rest is also medicine."
+    },
+    "shop_buy": {
+      "files": ["gyokuyou-smile.webp", "lihaku-grin.webp"],
+      "fallback": "sycee",
+      "caption": "Prescribed. Take as directed."
+    },
+    "idle": {
+      "files": ["maomao-calm.webp", "maomao-curious.webp"],
+      "fallback": "mortar-pestle",
+      "caption": ""
+    },
+    "loading": {
+      "files": ["maomao-curious.webp", "maomao-herb.webp"],
+      "fallback": "mortar-pestle",
+      "caption": ""
+    },
+    "welcome_back": {
+      "files": ["maomao-cozy.webp"],
+      "fallback": "teacup",
+      "caption": "Welcome back. The herbs kept."
+    },
+    "rest_day": {
+      "files": ["maomao-cozy.webp", "cat-kitten.webp"],
+      "fallback": "teacup",
+      "caption": "Even a poison taster needs a day off."
+    }
+  }
+}

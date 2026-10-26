@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maskable variant (full-bleed paper, everything inside the central 80% safe zone). ORIGINAL artwork. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#f4ecd8"/>
+  <rect x="76" y="76" width="360" height="360" rx="56" fill="none" stroke="#3f7d5c" stroke-width="7"/>
+  <g transform="rotate(-4 256 256)">
+    <rect x="146" y="146" width="220" height="220" rx="28" fill="#b23a2c"/>
+    <rect x="160" y="160" width="192" height="192" rx="18" fill="none" stroke="#fbf6ea" stroke-width="6"/>
+    <text x="256" y="261" text-anchor="middle" dominant-baseline="central" font-family="Noto Serif CJK JP, Noto Serif JP, serif" font-weight="900" font-size="154" fill="#fbf6ea">済</text>
+  </g>
+</svg>

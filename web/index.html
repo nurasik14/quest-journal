@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3ead6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15120e" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Quests" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Quest Journal</title>
+    <link rel="icon" href="/decor/herb-sprig.svg" type="image/svg+xml" />
+    <!-- Fonts are self-hosted subsets (src/lib/theme/fonts.css): no third-party requests, and they work offline. -->
+    <script>
+      // no-flash settings: mirror of src/lib/theme/theme.ts and src/lib/settings.ts (designer-AC16)
+      try {
+        const r = document.documentElement;
+        const t = localStorage.getItem('qj-theme');
+        if (t === 'light' || t === 'dark') {
+          r.dataset.theme = t;
+          // a chosen theme pins the browser chrome colour too (both media metas)
+          for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.setAttribute('content', t === 'dark' ? '#15120e' : '#f3ead6');
+        }
+        if (localStorage.getItem('qj-motion') === 'reduce') r.dataset.motion = 'reduce';
+        if (localStorage.getItem('qj-stickers') === 'off') r.dataset.stickers = 'off';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

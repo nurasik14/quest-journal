@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Quest Journal app icon. ORIGINAL artwork made for this project (no photos, no character art):
+     a vermilion 済 ("settled") seal on paper with a thin jade lattice rim. Source for scripts/make-icons.sh. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#f4ecd8"/>
+  <!-- jade lattice rim -->
+  <rect x="28" y="28" width="456" height="456" rx="76" fill="none" stroke="#3f7d5c" stroke-width="10"/>
+  <rect x="48" y="48" width="416" height="416" rx="60" fill="none" stroke="#3f7d5c" stroke-width="3"/>
+  <g stroke="#3f7d5c" stroke-width="6" stroke-linecap="square" fill="none">
+    <path d="M48 112 h40 v-40 M424 48 v40 h40 M464 400 h-40 v40 M88 464 v-40 h-40"/>
+  </g>
+  <!-- the seal -->
+  <g transform="rotate(-4 256 256)">
+    <rect x="116" y="116" width="280" height="280" rx="34" fill="#b23a2c"/>
+    <rect x="134" y="134" width="244" height="244" rx="22" fill="none" stroke="#fbf6ea" stroke-width="8"/>
+    <text x="256" y="262" text-anchor="middle" dominant-baseline="central" font-family="Noto Serif CJK JP, Noto Serif JP, serif" font-weight="900" font-size="196" fill="#fbf6ea">済</text>
+  </g>
+</svg>

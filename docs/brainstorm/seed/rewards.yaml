@@ -1,0 +1,86 @@
+# Palace market — shop items.
+# Fields: id, title, price (coins), cooldown_days, tier (free|small|medium|large|grand)
+# "free" tier = costs no real money (permission rewards). Others imply real spending.
+# PROVISIONAL prices (see docs/brainstorm/motivation.md §3): typical income ≈ 350 coins/week,
+# so treat ≈ 2–3×/week, café meal ≈ 1×/week, manga ≈ every 2–4 weeks depending on other spending.
+rewards:
+  # ---------- free (no real money) ----------
+  - id: skip-one-chore
+    title: "Skip one optional chore today, guilt-free"
+    price: 30
+    cooldown_days: 7
+    tier: free
+  - id: lie-in
+    title: "A lie-in: no alarm tomorrow morning"
+    price: 40
+    cooldown_days: 6
+    tier: free
+  - id: gaming-evening
+    title: "Guilt-free gaming or anime binge evening"
+    price: 60
+    cooldown_days: 5
+    tier: free
+  # ---------- small ----------
+  - id: treat
+    title: "A treat: dessert, bubble tea or a favorite snack"
+    price: 50
+    cooldown_days: 2
+    tier: small
+  - id: specialty-drink
+    title: "A specialty coffee or matcha latte"
+    price: 60
+    cooldown_days: 2
+    tier: small
+  # ---------- medium ----------
+  - id: cafe-meal
+    title: "A café meal"
+    price: 150
+    cooldown_days: 5
+    tier: medium
+  - id: new-cafe-brunch
+    title: "A slow brunch at a café you've wanted to try"
+    price: 220
+    cooldown_days: 10
+    tier: medium
+  - id: manga-digital
+    title: "One digital manga volume"
+    price: 250
+    cooldown_days: 7
+    tier: medium
+  - id: stationery
+    title: "A nice notebook or pen for sketching"
+    price: 200
+    cooldown_days: 21
+    tier: medium
+  # ---------- large ----------
+  - id: manga-volume
+    title: "One physical manga volume"
+    price: 350
+    cooldown_days: 10
+    tier: large
+  - id: cinema
+    title: "A cinema ticket (an anime film if one is showing)"
+    price: 300
+    cooldown_days: 14
+    tier: large
+  # ---------- grand ----------
+  - id: tech-book
+    title: "An ML/technical book or a paid course"
+    price: 900
+    cooldown_days: 45
+    tier: grand
+  - id: day-trip
+    title: "A day trip somewhere new"
+    price: 1200
+    cooldown_days: 45
+    tier: grand
+  - id: manga-boxset
+    title: "A manga box set or an art book"
+    price: 1500
+    cooldown_days: 60
+    tier: grand
+  - id: figure
+    title: "A figure or merch item from a favorite series"
+    price: 1800
+    cooldown_days: 90
+    tier: grand

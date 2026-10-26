@@ -1,0 +1,13 @@
+.orchestrator/
+docs/.status/
+node_modules/
+dist/
+.env
+web/public/stickers/*.png
+web/public/stickers/*
+!web/public/stickers/manifest.json
+web/public/decor/img/
+# Tester screenshots can contain personal-use anime stickers (CLAUDE.md): never commit them.
+docs/test-reports/img/
+.playwright-mcp/
+*.log
