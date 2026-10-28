@@ -13,8 +13,18 @@
   import { jobs as jobState, jobStartedAt, onJobSettled, trackJob } from '../lib/jobs.svelte';
   import { api, ApiError, NetworkError } from '../lib/api';
   import Quarantine from '../lib/components/Quarantine.svelte';
-  import { COPY, FIELD_NAMES } from '../lib/copy';
-  import { changedKeys, emptyForm, rebaseForm, saveBody, type EveningForm as Form, type FormKey } from '../lib/eveningForm';
+  import { COPY, FIELD_NAMES, money } from '../lib/copy';
+  import {
+    changedKeys,
+    emptyForm,
+    parseAmount,
+    rebaseForm,
+    saveBody,
+    spentRows,
+    spentTotal,
+    type EveningForm as Form,
+    type FormKey
+  } from '../lib/eveningForm';
   import { clearDraft, keepDraft, takeDraft } from '../lib/eveningDraft.svelte';
   import { gratitudeDay, prettyDate, shiftDate, toQuestView, weekdayOf } from '../lib/questView';
   import { HerbLoader, HerbRating, LatticeFrame, LOADING, MOOD_TAGS, PAGE_KANJI, PageTitle, QuestCard, ScrollCard, SealStamp, Sticker } from '../lib/theme';
@@ -59,11 +69,28 @@
   let reflectProposal = $state<ProposalJson | null>(null);
   let reflectEl = $state<HTMLElement | null>(null);
   let customTag = $state('');
+  /** The money row being typed (not in the form until "Add", Enter, or the seal). */
+  let newAmount = $state('');
+  let newNote = $state('');
+  let amountError = $state(false);
+  const pendingSpent = $derived(newAmount.trim() !== '');
 
   const weekday = $derived(date ? weekdayOf(date) : '');
   const isPast = $derived(date !== null && today !== null && date < today);
   const dirty = $derived(JSON.stringify(form) !== JSON.stringify(loaded));
-  const canSave = $derived(!saving && (form.satisfaction !== null || dirty) && !problem);
+  /** The page on disk already holds an evening entry and nothing here differs from it. */
+  const sealedOnDisk = $derived(
+    day !== null &&
+      (loaded.satisfaction !== null ||
+        loaded.mood.length > 0 ||
+        loaded.spent.length > 0 ||
+        [loaded.highlight, loaded.notes, loaded.gratitude].some((t) => t.trim() !== ''))
+  );
+  /** Tapped "Edit" on a sealed page: the fields open again until the next seal. */
+  let editing = $state(false);
+  /** Sealed and untouched: fields read-only, the seal button turns grey and offers "Edit". */
+  const locked = $derived(sealedOnDisk && !dirty && !theirs && !editing && !saving && !pendingSpent);
+  const canSave = $derived(!saving && (dirty || pendingSpent) && !problem);
   const showGratitude = $derived(gratitudeOpen || gratitudeDay(weekday) || loaded.gratitude !== '' || form.gratitude !== '');
   const reflectAllowed = $derived(
     date !== null && today !== null && (date === today || date === shiftDate(today, -1)) && day?.private !== true
@@ -110,7 +137,14 @@
 
   function formOf(d: DayJson | null): Form {
     if (!d) return emptyForm();
-    return { satisfaction: d.satisfaction, mood: [...d.mood], highlight: d.highlight, notes: d.notes, gratitude: d.gratitude };
+    return {
+      satisfaction: d.satisfaction,
+      mood: [...d.mood],
+      highlight: d.highlight,
+      notes: d.notes,
+      gratitude: d.gratitude,
+      spent: spentRows(d.spent)
+    };
   }
 
   function problemFrom(e: ApiError): FileProblem {
@@ -272,8 +306,32 @@
     customTag = '';
   }
 
+  /** Move the typed amount into the list. false = the amount box doesn't hold a usable number. */
+  function addSpent(): boolean {
+    const amount = parseAmount(newAmount);
+    if (amount === null) {
+      amountError = newAmount.trim() !== '';
+      return newAmount.trim() === '';
+    }
+    form.spent = [...form.spent, { amount, note: newNote.trim().slice(0, 80) }];
+    newAmount = '';
+    newNote = '';
+    amountError = false;
+    return true;
+  }
+
+  function removeSpent(i: number) {
+    form.spent = form.spent.filter((_, j) => j !== i);
+  }
+
   async function save() {
     if (!date || !canSave) return;
+    // A typed-but-not-added amount goes in with the seal, so it's never lost.
+    if (pendingSpent && !addSpent()) {
+      document.getElementById('spent-amount')?.focus();
+      return;
+    }
+    if (!dirty) return;
     saving = true;
     // M2 BUG-1: send only what the user changed, so untouched fields can't overwrite newer hand edits.
     const body = saveBody($state.snapshot(form), $state.snapshot(loaded));
@@ -291,6 +349,7 @@
       staleUpdated = [];
       clearDraft(date);
       savedOnce = true;
+      editing = false;
       stamped = false;
       queueMicrotask(() => (stamped = true));
       lowRatingSticker = res.data.day.satisfaction !== null && res.data.day.satisfaction <= 4;
@@ -353,6 +412,10 @@
 
   function moodText(v: Form['mood'] | undefined) {
     return v && v.length ? v.join(', ') : '—';
+  }
+
+  function spentText(v: Form['spent'] | undefined) {
+    return v && v.length ? v.map((e) => `${money(e.amount)}${e.note ? ` ${e.note}` : ''}`).join(', ') : '—';
   }
 </script>
 
@@ -435,7 +498,9 @@
               {#each staleFields as k (k)}
                 <dt>{COPY.staleField(FIELD_NAMES[k])}</dt>
                 <dd>
-                  {#if k === 'mood'}{moodText(theirs.mood)}{:else if k === 'satisfaction'}{theirs.satisfaction ?? '—'}{:else}<pre
+                  {#if k === 'mood'}{moodText(theirs.mood)}{:else if k === 'satisfaction'}{theirs.satisfaction ?? '—'}{:else if k === 'spent'}{spentText(
+                      theirs.spent
+                    )}{:else}<pre
                       class="theirs">{theirs[k] || '—'}</pre>{/if}
                 </dd>
               {/each}
@@ -453,6 +518,7 @@
       void save();
     }}
   >
+    <fieldset class="fields" disabled={locked}>
     <LatticeFrame pattern="ice">
       <HerbRating bind:value={form.satisfaction} legend={COPY.eveningLegend} />
       {#if form.satisfaction === null}
@@ -515,6 +581,71 @@
       <button class="qj-btn qj-btn--quiet add-grat" type="button" onclick={() => (gratitudeOpen = true)}>{COPY.gratitudeAdd}</button>
     {/if}
 
+    </fieldset>
+
+    <!-- Money (outside the sealed fieldset): a new amount can be noted on a sealed page straight away. -->
+    <fieldset class="spent">
+      <legend class="qj-label">{isPast ? COPY.spentLegendPast : COPY.spentLegend}</legend>
+      <span class="qj-hint" id="spent-hint">{COPY.spentHint}</span>
+      {#if form.spent.length}
+        <ul class="spent-list">
+          {#each form.spent as e, i (i)}
+            <li>
+              <span class="spent-note" class:muted={!e.note}>{e.note || COPY.spentNoNote}</span>
+              <span class="spent-amt">{money(e.amount)}</span>
+              <button
+                class="qj-btn qj-btn--quiet qj-btn--sm spent-x"
+                type="button"
+                aria-label={COPY.spentRemove(`${money(e.amount)}${e.note ? ` ${e.note}` : ''}`)}
+                onclick={() => removeSpent(i)}>×</button
+              >
+            </li>
+          {/each}
+        </ul>
+        <p class="spent-total" aria-live="polite">{COPY.spentTotal(money(spentTotal(form.spent)))}</p>
+      {:else}
+        <p class="small muted">{COPY.spentNone}</p>
+      {/if}
+      <div class="spent-add">
+        <label class="qj-sr-only" for="spent-amount">{COPY.spentAmountLabel}</label>
+        <input
+          id="spent-amount"
+          class="qj-input spent-amount"
+          inputmode="decimal"
+          autocomplete="off"
+          maxlength="14"
+          placeholder={COPY.spentAmountLabel}
+          aria-invalid={amountError}
+          aria-describedby={amountError ? 'spent-error' : 'spent-hint'}
+          bind:value={newAmount}
+          oninput={() => (amountError = false)}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addSpent();
+            }
+          }}
+        />
+        <label class="qj-sr-only" for="spent-note">{COPY.spentNoteLabel}</label>
+        <input
+          id="spent-note"
+          class="qj-input spent-note-in"
+          maxlength="80"
+          autocomplete="off"
+          placeholder={COPY.spentNotePlaceholder}
+          bind:value={newNote}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (addSpent()) document.getElementById('spent-amount')?.focus();
+            }
+          }}
+        />
+        <button class="qj-btn qj-btn--sm" type="button" disabled={newAmount.trim() === ''} onclick={addSpent}>{COPY.spentAdd}</button>
+      </div>
+      {#if amountError}<p class="small spent-error" id="spent-error" role="alert">{COPY.spentBadAmount}</p>{/if}
+    </fieldset>
+
     {#if day && day.extra_sections.length}
       <p class="small muted">{COPY.ownSectionsKept(day.extra_sections)}</p>
     {/if}
@@ -535,15 +666,29 @@
       </section>
     {/if}
 
-    <div class="savebar" class:settled={savedOnce && !dirty && !theirs}>
-      <button
-        class="qj-btn qj-btn--seal qj-btn--block"
-        type="submit"
-        disabled={!canSave}
-        aria-describedby={form.satisfaction === null ? 'rating-hint' : undefined}
-      >
-        {saving ? COPY.sealing : isPast ? COPY.sealPast : COPY.sealButton}
-      </button>
+    <div class="savebar" class:settled={(savedOnce || sealedOnDisk) && !dirty && !theirs}>
+      {#if locked}
+        <button
+          class="qj-btn qj-btn--block sealed-btn"
+          type="button"
+          onclick={async () => {
+            editing = true;
+            await tick();
+            document.getElementById('highlight')?.focus();
+          }}
+        >
+          {isPast ? COPY.editPast : COPY.editToday}
+        </button>
+      {:else}
+        <button
+          class="qj-btn qj-btn--seal qj-btn--block"
+          type="submit"
+          disabled={!canSave}
+          aria-describedby={form.satisfaction === null ? 'rating-hint' : undefined}
+        >
+          {saving ? COPY.sealing : isPast ? COPY.sealPast : COPY.sealButton}
+        </button>
+      {/if}
     </div>
   </form>
 {/if}
@@ -600,6 +745,62 @@
   .add-grat {
     justify-self: start;
   }
+  .spent {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: grid;
+    gap: var(--sp-2);
+  }
+  .spent-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--sp-1);
+  }
+  .spent-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding-bottom: var(--sp-1);
+    border-bottom: 1px dashed var(--line);
+  }
+  .spent-note {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .spent-amt {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .spent-x {
+    min-width: 44px;
+  }
+  .spent-total {
+    margin: 0;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .spent-add {
+    display: flex;
+    gap: var(--sp-2);
+  }
+  .spent-amount {
+    flex: 0 0 6.5rem;
+    min-width: 0;
+  }
+  .spent-note-in {
+    flex: 1;
+    min-width: 0;
+  }
+  .spent-error {
+    margin: 0;
+    color: var(--seal);
+  }
   .savebar {
     position: sticky;
     bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
@@ -608,6 +809,21 @@
     margin-inline: calc(-1 * var(--gutter));
     padding: var(--sp-3) var(--gutter) var(--sp-2);
     background: linear-gradient(to bottom, transparent, var(--bg) 35%);
+  }
+  .fields {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: grid;
+    gap: var(--sp-5);
+  }
+  /* Sealed and unchanged: a grey, pressed-in button that reopens the page for editing. */
+  .sealed-btn {
+    --_bg: var(--surface-sunk);
+    --_fg: var(--ink-muted);
+    --_bd: color-mix(in srgb, var(--ink-muted) 35%, transparent);
+    box-shadow: inset 0 2px 4px color-mix(in srgb, var(--ink) 12%, transparent);
   }
   /* Once sealed and unchanged, the bar stops floating so it never covers the reflection actions (designer-AC11). */
   .savebar.settled {

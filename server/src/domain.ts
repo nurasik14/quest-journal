@@ -177,6 +177,10 @@ export const LIMITS = {
   moodTags: 24,
   eveningText: 10_000,
   checkpoints: 4,
+  /** Money noted on one day page (`spent:` in the front matter). */
+  spentEntries: 50,
+  spentNote: 80,
+  spentAmount: 10_000_000,
 } as const;
 
 /** How far back pool titles are avoided (architecture.md §2.1). */

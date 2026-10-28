@@ -75,7 +75,7 @@ flying
 
 describe("BUG-1: re-save after 412 never overwrites hand edits in untouched fields", () => {
   test("pure: saveBody sends only changed fields; a no-change re-seal sends just the rating", () => {
-    const loaded: EveningForm = { satisfaction: 7, mood: ["calm"], highlight: "Tea", notes: "n", gratitude: "" };
+    const loaded: EveningForm = { satisfaction: 7, mood: ["calm"], highlight: "Tea", notes: "n", gratitude: "", spent: [] };
     expect(saveBody({ ...loaded, notes: "new" }, loaded)).toEqual({ notes: "new" });
     expect(saveBody({ ...loaded, mood: ["calm", "proud"] }, loaded)).toEqual({ mood: ["calm", "proud"] });
     expect(saveBody({ ...loaded }, loaded)).toEqual({ satisfaction: 7 });
@@ -83,7 +83,7 @@ describe("BUG-1: re-save after 412 never overwrites hand edits in untouched fiel
   });
 
   test("pure: rebaseForm adopts on-disk values for untouched fields, keeps the user's edits, reports conflicts", () => {
-    const loaded: EveningForm = { satisfaction: 7, mood: ["calm"], highlight: "Tea", notes: "old", gratitude: "" };
+    const loaded: EveningForm = { satisfaction: 7, mood: ["calm"], highlight: "Tea", notes: "old", gratitude: "", spent: [] };
     const form: EveningForm = { ...loaded, notes: "my phone text" };
     const disk: EveningForm = { ...loaded, highlight: "Tea (edited in Obsidian)", notes: "hand notes" };
     const r = rebaseForm(form, loaded, disk);

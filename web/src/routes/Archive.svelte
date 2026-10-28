@@ -13,8 +13,8 @@
   import BottomSheet from '../lib/components/BottomSheet.svelte';
   import OfflineCard from '../lib/components/OfflineCard.svelte';
   import Quarantine from '../lib/components/Quarantine.svelte';
-  import { COPY } from '../lib/copy';
-  import { buildRows, canWrite, shownCategories, dateParam, dayMonth, gardenLevel, plotLabel, rangeWindow, shortDate, type GardenRange } from '../lib/garden';
+  import { COPY, CURRENCY, money, moneyNumber } from '../lib/copy';
+  import { buildRows, canWrite, spendBars, shownCategories, dateParam, dayMonth, gardenLevel, plotLabel, rangeWindow, shortDate, type GardenRange } from '../lib/garden';
   import { prettyDate } from '../lib/questView';
   import { router } from '../lib/router.svelte';
   import { categoryInfo, HerbRating, Icon, PAGE_KANJI, PageTitle, ScrollCard, STATUS, Sticker } from '../lib/theme';
@@ -34,10 +34,15 @@
 
   const today = $derived(stats?.today ?? '');
   const rows = $derived(stats ? buildRows(stats.heatmap, stats.today, range) : []);
-  const empty = $derived(stats !== null && stats.days_logged < 3);
+  const empty = $derived(stats !== null && stats.days_logged < 1);
   const cats = $derived(stats ? shownCategories(stats.by_category) : []);
   const maxDone = $derived(Math.max(1, ...cats.map((c) => c.done + c.partial)));
   const legend = [1, 2, 3, 4, 5] as const;
+  const spending = $derived(stats?.spending ?? null);
+  const bars = $derived(stats ? spendBars(stats.heatmap, stats.today) : []);
+  const maxBar = $derived(Math.max(0, ...bars.map((b) => b.amount)));
+  const maxTop = $derived(Math.max(1, ...(spending?.top ?? []).map((t) => t.amount)));
+  const rangeLabel = $derived(range === '4w' ? COPY.gardenRange4w : COPY.gardenRange3m);
 
   async function load() {
     loading = true;
@@ -244,6 +249,72 @@
     </section>
   {/if}
 
+  {#if stats && spending}
+    <section class="money" aria-labelledby="money-h">
+      <h2 id="money-h">{COPY.gardenMoney}</h2>
+      {#if !spending.any}
+        <p class="caption">{COPY.gardenMoneyEmpty}</p>
+        <a class="qj-btn qj-btn--quiet qj-btn--sm money-log" href="/evening">{COPY.gardenMoneyLog}</a>
+      {:else}
+        <dl class="stats money-stats">
+          <div>
+            <dt>{COPY.gardenMoneyToday}</dt>
+            <dd class="num money-num"><span class="cur">{CURRENCY}</span>{moneyNumber(spending.today)}</dd>
+          </div>
+          <div>
+            <dt>{COPY.gardenMoney7}</dt>
+            <dd class="num money-num"><span class="cur">{CURRENCY}</span>{moneyNumber(spending.last_7_days)}</dd>
+          </div>
+          <div>
+            <dt>{COPY.gardenMoneyMonth}</dt>
+            <dd class="num money-num"><span class="cur">{CURRENCY}</span>{moneyNumber(spending.this_month)}</dd>
+          </div>
+        </dl>
+
+        {#if spending.entries === 0}
+          <p class="caption">{COPY.gardenMoneyNoneInRange}</p>
+        {:else}
+          <p class="money-range">
+            <strong>{COPY.gardenMoneyRange(rangeLabel)}: {money(spending.total)}</strong>
+            {#if spending.avg_per_day !== null}<span class="muted"> · {COPY.gardenMoneyAvg(money(spending.avg_per_day))}</span>{/if}
+          </p>
+          <div class="spend-chart" role="img" aria-label="{COPY.gardenMoneyChart}: {COPY.gardenMoneyRange(rangeLabel)} {money(spending.total)}">
+            {#each bars as b (b.date)}
+              <span class="spend-col" title="{shortDate(b.date)}: {money(b.amount)}">
+                <span
+                  class="spend-bar"
+                  class:zero={b.amount === 0}
+                  class:today={b.date === today}
+                  style:height="{maxBar > 0 ? Math.max(b.amount > 0 ? 6 : 0, (b.amount / maxBar) * 100) : 0}%"
+                ></span>
+              </span>
+            {/each}
+          </div>
+          {#if bars.length}
+            <div class="spend-axis" aria-hidden="true"><span>{shortDate(bars[0]!.date)}</span><span>{shortDate(bars[bars.length - 1]!.date)}</span></div>
+          {/if}
+          {#if spending.biggest_day}
+            <p class="caption">{COPY.gardenMoneyBiggest(money(spending.biggest_day.amount), shortDate(spending.biggest_day.date))}</p>
+          {/if}
+          {#if spending.top.length}
+            <h3>{COPY.gardenMoneyWhere}</h3>
+            <ul class="money-top">
+              {#each spending.top as t (t.note ?? '')}
+                <li>
+                  <div class="cat-line">
+                    <span class:muted={t.note === null}>{t.note ?? COPY.spentNoNote}</span>
+                    <span class="cat-nums"><span class="muted">{COPY.gardenMoneyTimes(t.count)}</span><span class="money-amt">{money(t.amount)}</span></span>
+                  </div>
+                  <span class="track" aria-hidden="true"><span class="bar money-bar" style:width="{(t.amount / maxTop) * 100}%"></span></span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        {/if}
+      {/if}
+    </section>
+  {/if}
+
   {#if stats?.this_day_last_month}
     {@const m = stats.this_day_last_month}
     <ScrollCard>
@@ -298,6 +369,12 @@
               <span class="muted">· {STATUS[q.status as keyof typeof STATUS]?.label ?? q.status}</span>
             </li>
           {/each}
+        </ul>
+      {/if}
+      {#if d.spent?.length}
+        <h3>{COPY.gardenSpentDay} · {money(d.spent.reduce((s, e) => s + e.amount, 0))}</h3>
+        <ul class="sheet-spent">
+          {#each d.spent as e, i (i)}<li><span class:muted={!e.note}>{e.note || COPY.spentNoNote}</span><span>{money(e.amount)}</span></li>{/each}
         </ul>
       {/if}
       {#if d.notes.trim()}<p class="notes">{d.notes}</p>{/if}
@@ -361,7 +438,8 @@
     gap: var(--sp-4);
   }
   .garden,
-  .cats {
+  .cats,
+  .money {
     margin-top: var(--sp-5);
     display: grid;
     gap: var(--sp-3);
@@ -537,6 +615,93 @@
     margin: 0;
     font-size: var(--fs-sm);
     color: var(--ink-muted);
+  }
+  .money h3 {
+    margin-top: var(--sp-2);
+  }
+  /* Money can be long (HK$1,234.50): a smaller currency mark, never broken mid-number; columns wrap instead. */
+  .money-stats {
+    grid-template-columns: repeat(auto-fit, minmax(5.75rem, 1fr));
+  }
+  .money-num {
+    font-size: var(--fs-xl, 1.35rem);
+    white-space: nowrap;
+  }
+  .cur {
+    font-size: 0.6em;
+    margin-right: 1px;
+    color: var(--ink-muted);
+  }
+  .money-range {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .money-log {
+    justify-self: start;
+  }
+  .spend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 6rem;
+    max-width: 30rem;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .spend-axis {
+    display: flex;
+    justify-content: space-between;
+    max-width: 30rem;
+    margin-top: calc(-1 * var(--sp-2));
+    font-size: var(--fs-xs, 0.75rem);
+    color: var(--ink-muted);
+  }
+  .money-amt {
+    min-width: 5.5rem;
+    text-align: right;
+    font-weight: 600;
+  }
+  .spend-col {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+  }
+  .spend-bar {
+    display: block;
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    background: var(--seal);
+    opacity: 0.75;
+  }
+  .spend-bar.today {
+    opacity: 1;
+  }
+  .money-top {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--sp-3);
+  }
+  .money-bar {
+    background: var(--seal);
+    opacity: 0.75;
+  }
+  .sheet-spent {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--sp-1);
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet-spent li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    overflow-wrap: anywhere;
   }
   .month-ago {
     display: grid;

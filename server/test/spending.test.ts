@@ -1,0 +1,113 @@
+/** Money noted on the ledger page (`spent:`): the evening PUT, the day file, and the garden's spending stats. */
+import { afterAll, describe, expect, test } from "bun:test";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { spendingStats, type StatsDay } from "../src/stats";
+import { parseAmount, saveBody, emptyForm, spentRows, spentTotal } from "../../web/src/lib/eveningForm";
+import { cleanupTempDirs, makeTestApp, req, type TestApp } from "./helpers";
+
+afterAll(cleanupTempDirs);
+
+type Json = Record<string, any>;
+const NOW = "2026-10-25T10:00:00+05:00"; // logical 2026-10-25, Asia/Tashkent
+const TODAY = "2026-10-25";
+
+async function call(t: TestApp, method: string, path: string, body?: unknown, headers: Record<string, string> = {}) {
+  const init: RequestInit = { method, headers: { ...headers } };
+  if (body !== undefined) {
+    (init.headers as Record<string, string>)["content-type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+  const res = await req(t.app, path, init);
+  const text = await res.text();
+  return { status: res.status, data: (text ? JSON.parse(text) : null) as Json, etag: res.headers.get("etag")?.replace(/"/g, "") ?? null };
+}
+
+const app = () => makeTestApp({ now: NOW, env: { AI_BOSS_ON_OPEN: "false" } });
+const sd = (date: string, spent: StatsDay["spent"]): StatsDay => ({ date, satisfaction: null, quests: [], spent });
+
+describe("evening PUT with spent", () => {
+  test("saves the list to the front matter, rounds to cents, drops empty notes; a re-save of the same list is a no-op", async () => {
+    const t = await app();
+    const r = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 38.499, note: " lunch " }, { amount: 12, note: "" }] }, { "if-match": "*" });
+    expect(r.status).toBe(200);
+    expect(r.data.day.spent).toEqual([{ amount: 38.5, note: "lunch" }, { amount: 12 }]);
+    const text = await readFile(join(t.dataDir, "days", `${TODAY}.md`), "utf8");
+    expect(text).toContain("spent:");
+    expect(text).toContain("note: lunch");
+    const again = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 38.5, note: "lunch" }, { amount: 12 }] }, { "if-match": r.etag! });
+    expect(again.status).toBe(200);
+    expect(again.etag).toBe(r.etag);
+  });
+
+  test("rejects negative amounts, long notes and unknown keys", async () => {
+    const t = await app();
+    for (const spent of [[{ amount: -1 }], [{ amount: 5, note: "x".repeat(81) }], [{ amount: 5, what: "?" }]]) {
+      const r = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent }, { "if-match": "*" });
+      expect(r.status).toBe(400);
+    }
+  });
+
+  test("a hand-written bare number reads as an entry and doesn't quarantine the page", async () => {
+    const t = await app();
+    await writeFile(join(t.dataDir, "days", `${TODAY}.md`), `---\ndate: ${TODAY}\nspent:\n  - 20\n  - amount: 5.5\n    note: bus\n---\n`);
+    const r = await call(t, "GET", `/api/days/${TODAY}`);
+    expect(r.status).toBe(200);
+    expect(r.data.spent).toEqual([{ amount: 20 }, { amount: 5.5, note: "bus" }]);
+  });
+
+  test("/api/stats carries per-day sums and the spending block", async () => {
+    const t = await app();
+    await call(t, "PUT", `/api/days/2026-10-24/evening`, { satisfaction: 6, spent: [{ amount: 100, note: "Books" }] }, { "if-match": "*" });
+    await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 30, note: "books" }, { amount: 10 }] }, { "if-match": "*" });
+    const r = await call(t, "GET", `/api/stats?from=2026-10-19&to=${TODAY}`);
+    expect(r.status).toBe(200);
+    expect(r.data.heatmap.find((h: Json) => h.date === TODAY).spent).toBe(40);
+    expect(r.data.spending.today).toBe(40);
+    expect(r.data.spending.total).toBe(140);
+    expect(r.data.spending.avg_per_day).toBe(70);
+    expect(r.data.spending.top[0]).toEqual({ note: "Books", amount: 130, count: 2 });
+  });
+});
+
+describe("spendingStats (pure)", () => {
+  const days = [sd("2026-09-30", [{ amount: 500 }]), sd("2026-10-20", [{ amount: 10, note: "tea" }]), sd("2026-10-25", [{ amount: 5.25, note: "Tea" }, { amount: 1 }])];
+
+  test("today / 7 days / month are independent of the range; range sums and averages over calendar days", () => {
+    const s = spendingStats(days, TODAY, "2026-10-19", TODAY);
+    expect(s).toMatchObject({ today: 6.25, last_7_days: 16.25, this_month: 16.25, total: 16.25, days: 2, entries: 3, any: true });
+    expect(s.avg_per_day).toBe(2.71); // 16.25 over 10-20..10-25 (6 days)
+    expect(s.biggest_day).toEqual({ date: "2026-10-20", amount: 10 });
+    expect(s.top).toEqual([
+      { note: "tea", amount: 15.25, count: 2 },
+      { note: null, amount: 1, count: 1 },
+    ]);
+  });
+
+  test("nothing noted → zeros, null average, any=false", () => {
+    const s = spendingStats([sd(TODAY, [])], TODAY, "2026-10-19", TODAY);
+    expect(s).toMatchObject({ today: 0, total: 0, avg_per_day: null, biggest_day: null, top: [], any: false });
+  });
+});
+
+describe("evening form helpers", () => {
+  test("parseAmount", () => {
+    expect(parseAmount("38")).toBe(38);
+    expect(parseAmount("12.5")).toBe(12.5);
+    expect(parseAmount("38,50")).toBe(38.5);
+    expect(parseAmount("1,200")).toBe(1200);
+    expect(parseAmount("HK$ 7")).toBe(7);
+    expect(parseAmount("")).toBeNull();
+    expect(parseAmount("0")).toBeNull();
+    expect(parseAmount("abc")).toBeNull();
+    expect(parseAmount("1.2.3")).toBeNull();
+  });
+
+  test("saveBody sends the whole spent list when it changed, notes trimmed, empty notes left out", () => {
+    const loaded = emptyForm();
+    const form = { ...loaded, spent: [{ amount: 5, note: " bus " }, { amount: 2, note: "" }] };
+    expect(saveBody(form, loaded)).toEqual({ spent: [{ amount: 5, note: "bus" }, { amount: 2 }] });
+    expect(spentRows([{ amount: 3, note: null }])).toEqual([{ amount: 3, note: "" }]);
+    expect(spentTotal([{ amount: 0.1 }, { amount: 0.2 }])).toBe(0.3);
+  });
+});

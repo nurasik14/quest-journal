@@ -194,7 +194,7 @@ describe("plain text only (goal 9, architect-AC8)", () => {
 
 describe("garden helpers (goals 13–17)", () => {
   const h = (date: string, state: HeatmapDay["state"], s: number | null = null): HeatmapDay => ({
-    date, satisfaction: s, rated: s !== null, counted: state === "rated" || state === "unrated", broken: state === "broken", private: false, state, quests_done: 2, quests_total: 3,
+    date, satisfaction: s, rated: s !== null, counted: state === "rated" || state === "unrated", broken: state === "broken", private: false, state, quests_done: 2, quests_total: 3, spent: 0,
   });
 
   test("levels: 1–2→1 … 9–10→5; out-of-range hand edits round then clamp", () => {

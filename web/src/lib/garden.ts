@@ -124,3 +124,8 @@ export function dateParam(search: string): string | null {
   const v = new URLSearchParams(search).get('date');
   return v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(parse(v)) ? v : null;
 }
+
+/** One bar per day of the window up to today: what the page noted as spent (0 = nothing noted). */
+export function spendBars(heatmap: readonly HeatmapDay[], today: string): { date: string; amount: number }[] {
+  return heatmap.filter((h) => h.date <= today).map((h) => ({ date: h.date, amount: h.spent ?? 0 }));
+}

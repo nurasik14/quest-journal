@@ -108,8 +108,30 @@ export const eveningBody = z.strictObject({
   highlight: eveningText.optional(),
   notes: eveningText.optional(),
   gratitude: eveningText.optional(),
+  /** Money spent that day: the whole list (replaces the page's `spent:`). */
+  spent: z
+    .array(
+      z.strictObject({
+        amount: z.number().finite().min(0).max(LIMITS.spentAmount),
+        note: z.string().max(LIMITS.spentNote).optional(),
+      }),
+    )
+    .max(LIMITS.spentEntries)
+    .optional(),
 });
 export type EveningInput = z.infer<typeof eveningBody>;
+
+/** Write-side money entries: amounts rounded to cents, notes trimmed, an empty note left out of the file. */
+export function normalizeSpent(incoming: NonNullable<EveningInput["spent"]>): { amount: number; note?: string }[] {
+  return incoming.map((e) => {
+    const amount = Math.round(e.amount * 100) / 100;
+    const note = (e.note ?? "").trim();
+    return note ? { amount, note } : { amount };
+  });
+}
+
+const spentKey = (xs: readonly { amount: number; note?: string | null | undefined }[]) =>
+  JSON.stringify(xs.map((x) => [x.amount, (x.note ?? "").trim()]));
 
 /**
  * Write-side mood normalization: trim, lowercase, drop empties, dedupe (case-insensitive). A tag that is
@@ -388,6 +410,11 @@ export function createTodayService(deps: TodayDeps) {
             if (body.highlight !== undefined) d.highlight = body.highlight;
             if (body.notes !== undefined) d.notes = body.notes;
             if (body.gratitude !== undefined) d.gratitude = body.gratitude;
+            if (body.spent !== undefined) {
+              const next = normalizeSpent(body.spent);
+              // Leave the page untouched when nothing changed (a hand-written `- 38` stays as written).
+              if (spentKey(next) !== spentKey(d.spent ?? [])) d.spent = next;
+            }
             // Backlog #62: a page written after its logical day is marked once (motivation §4.1). Only when
             // the save really changes something, so a no-op re-save of an old page stays byte-identical.
             if (dirty) d.backfilled = true;
@@ -422,6 +449,7 @@ function changesSomething(d: DayDraft, body: EveningInput): boolean {
     const v = body[k];
     if (v !== undefined && v.replace(/\s+$/, "") !== d[k].replace(/\s+$/, "")) return true;
   }
+  if (body.spent !== undefined && spentKey(normalizeSpent(body.spent)) !== spentKey(d.spent ?? [])) return true;
   return body.mood !== undefined && JSON.stringify(normalizeMood(body.mood, d.mood)) !== JSON.stringify(d.mood);
 }
 

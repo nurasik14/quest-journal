@@ -139,9 +139,16 @@ export interface DayJson {
   highlight: string;
   notes: string;
   gratitude: string;
+  /** Money noted for the day (front matter `spent:`), in the user's currency. */
+  spent: SpentJson[];
   extra_sections: string[];
   etag: string;
   [extra: string]: unknown;
+}
+
+export interface SpentJson {
+  amount: number;
+  note?: string | null;
 }
 
 export interface WeekJson {
@@ -270,6 +277,7 @@ export interface EveningBody {
   highlight?: string;
   notes?: string;
   gratitude?: string;
+  spent?: SpentJson[];
 }
 
 export type ReflectSkip = "ai_off" | "not_recent" | "private" | "care" | "exists" | "unchanged" | "few_days" | "empty";
@@ -360,4 +368,4 @@ export interface ApiErrorBody {
 }
 
 // ---------------------------------------------------------------- M6: the garden
-export type { CategoryStat, HeatmapDay, MonthAgo, PlotState, Stats as StatsResponse } from "./stats";
+export type { CategoryStat, HeatmapDay, MonthAgo, PlotState, SpendingStats, Stats as StatsResponse } from "./stats";

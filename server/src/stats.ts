@@ -17,6 +17,8 @@ export interface StatsDay extends DayInput {
   quests: readonly { title?: string; category?: string; status: DayInput["quests"][number]["status"]; difficulty: DayInput["quests"][number]["difficulty"] }[];
   energy?: number | null;
   private?: boolean;
+  /** Money noted on the page (`spent:`). */
+  spent?: readonly { amount: number; note?: string | null | undefined }[];
 }
 
 /**
@@ -42,6 +44,30 @@ export interface HeatmapDay {
   /** done + partial daily quests. */
   quests_done: number;
   quests_total: number;
+  /** Money noted that day (sum of `spent:`), 0 when none. */
+  spent: number;
+}
+
+/** Money noted in the ledger (`spent:` on day pages). Plain sums; no budget, no judgment. */
+export interface SpendingStats {
+  /** Logical today. */
+  today: number;
+  /** Today and the 6 days before it. */
+  last_7_days: number;
+  /** The calendar month of today, up to today. */
+  this_month: number;
+  /** Over the requested range, up to today. */
+  total: number;
+  /** Days in the range with at least one entry. */
+  days: number;
+  entries: number;
+  /** `total` spread over the calendar days from the first noted spend in the range to the range end (or today). */
+  avg_per_day: number | null;
+  biggest_day: { date: string; amount: number } | null;
+  /** Where it went in the range: entries grouped by note (case-insensitive), largest first, at most SPENDING_TOP. */
+  top: { note: string | null; amount: number; count: number }[];
+  /** Anything ever noted, on any page. */
+  any: boolean;
 }
 
 export interface CategoryStat {
@@ -81,6 +107,7 @@ export interface Stats {
   quests_done: number;
   min_rated: number;
   this_day_last_month: MonthAgo | null;
+  spending: SpendingStats;
   warnings: Warning[];
 }
 
@@ -97,6 +124,71 @@ export interface StatsInput {
 export const HIGHLIGHT_PREVIEW_CHARS = 200;
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
+const round2 = (x: number) => Math.round(x * 100) / 100;
+
+export const SPENDING_TOP = 5;
+
+/** Sum of a day's money entries. */
+export function spentOn(d: Pick<StatsDay, "spent"> | undefined): number {
+  return round2((d?.spent ?? []).reduce((s, e) => s + (Number.isFinite(e.amount) ? e.amount : 0), 0));
+}
+
+export function spendingStats(days: readonly StatsDay[], today: string, from: string, to: string): SpendingStats {
+  const upTo = to < today ? to : today;
+  const weekFrom = addDays(today, -6);
+  const monthFrom = `${today.slice(0, 8)}01`;
+  let todaySum = 0;
+  let week = 0;
+  let month = 0;
+  let total = 0;
+  let nDays = 0;
+  let entries = 0;
+  let firstInRange: string | null = null;
+  let biggest: { date: string; amount: number } | null = null;
+  let any = false;
+  const groups = new Map<string, { note: string | null; amount: number; count: number }>();
+  for (const d of days) {
+    if (d.date > today) continue;
+    const list = d.spent ?? [];
+    if (list.length === 0) continue;
+    any = true;
+    const sum = spentOn(d);
+    if (d.date === today) todaySum += sum;
+    if (d.date >= weekFrom) week += sum;
+    if (d.date >= monthFrom) month += sum;
+    if (d.date < from || d.date > upTo) continue;
+    total += sum;
+    nDays++;
+    entries += list.length;
+    if (firstInRange === null || d.date < firstInRange) firstInRange = d.date;
+    if (sum > 0 && (biggest === null || sum > biggest.amount)) biggest = { date: d.date, amount: sum };
+    for (const e of list) {
+      const note = (e.note ?? "").trim();
+      const key = note.toLowerCase();
+      let g = groups.get(key);
+      if (!g) groups.set(key, (g = { note: note === "" ? null : note, amount: 0, count: 0 }));
+      g.amount += Number.isFinite(e.amount) ? e.amount : 0;
+      g.count++;
+    }
+  }
+  let span = 0;
+  if (firstInRange !== null) for (let d = firstInRange; d <= upTo; d = addDays(d, 1)) span++;
+  return {
+    today: round2(todaySum),
+    last_7_days: round2(week),
+    this_month: round2(month),
+    total: round2(total),
+    days: nDays,
+    entries,
+    avg_per_day: span > 0 ? round2(total / span) : null,
+    biggest_day: biggest,
+    top: [...groups.values()]
+      .map((g) => ({ ...g, amount: round2(g.amount) }))
+      .sort((a, b) => b.amount - a.amount || b.count - a.count)
+      .slice(0, SPENDING_TOP),
+    any,
+  };
+}
 
 function daysInMonth(y: number, m: number): number {
   return new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-based: day 0 of the next month
@@ -205,6 +297,7 @@ export function computeStats(input: StatsInput): Stats {
       state,
       quests_done: day ? day.quests.filter((q) => q.status === "done" || q.status === "partial").length : 0,
       quests_total: day ? day.quests.length : 0,
+      spent: d > today ? 0 : spentOn(day),
     });
   }
 
@@ -223,6 +316,7 @@ export function computeStats(input: StatsInput): Stats {
     quests_done: input.economy.quests_done,
     min_rated: STATS_MIN_RATED,
     this_day_last_month: monthAgoCard(input.days, brokenDates, today),
+    spending: spendingStats(input.days, today, from, to),
     warnings,
   };
 }

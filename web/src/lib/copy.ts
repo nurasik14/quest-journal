@@ -42,9 +42,24 @@ export const COPY = {
   notesLabel: 'Notes',
   gratitudeLabel: 'Gratitude',
   gratitudeAdd: '+ Add gratitude',
+  // ---- money noted on the page (`spent:`). Plain sums, never a verdict.
+  spentLegend: 'Spent today',
+  spentLegendPast: 'Spent that day',
+  spentHint: 'Note what went out, even small things.',
+  spentAmountLabel: 'Amount',
+  spentNoteLabel: 'What for',
+  spentNotePlaceholder: 'lunch, bus, snacks…',
+  spentAdd: 'Add',
+  spentRemove: (what: string) => `Remove ${what}`,
+  spentNone: 'Nothing noted yet.',
+  spentTotal: (amount: string) => `Total: ${amount}`,
+  spentBadAmount: 'Type an amount, like 38 or 12.50.',
+  spentNoNote: 'no note',
   sealButton: "Seal today's ledger",
   sealPast: 'Seal this ledger page',
   sealing: 'Sealing…',
+  editToday: "✓ Sealed · Edit today's ledger",
+  editPast: '✓ Sealed · Edit this page',
   sealed: 'Sealed in the ledger.',
   /** H1 #227: one merged toast when the evening save itself lands the week's bonus. */
   sealedWithBonus: (b: number) => `Sealed in the ledger. Another week in the ledger. +${b} taels`,
@@ -232,6 +247,20 @@ export const COPY = {
   gardenWriteLedger: 'Write in the ledger',
   gardenQuests: 'Quests',
   gardenPrivate: 'Private page',
+  gardenMoney: 'Money spent',
+  gardenMoneyToday: 'Today',
+  gardenMoney7: 'Last 7 days',
+  gardenMoneyMonth: 'This month',
+  gardenMoneyRange: (range: string) => `Over ${range}`,
+  gardenMoneyAvg: (amount: string) => `about ${amount} a day`,
+  gardenMoneyBiggest: (amount: string, when: string) => `Biggest day: ${amount} on ${when}`,
+  gardenMoneyWhere: 'Where it went',
+  gardenMoneyChart: 'Money spent per day',
+  gardenMoneyEmpty: 'No money noted yet. Add what you spend in the evening ledger and it shows up here.',
+  gardenMoneyNoneInRange: 'Nothing noted in this stretch.',
+  gardenMoneyTimes: (n: number) => (n === 1 ? 'once' : `${n}×`),
+  gardenMoneyLog: 'Note today\'s spending',
+  gardenSpentDay: 'Spent',
   plotLabel: (when: string, what: string) => `${when}: ${what}`,
   plotRated: (s: number, done: number, total: number) =>
     total > 0 ? `satisfaction ${s}, ${done} of ${total} quests` : `satisfaction ${s}`,
@@ -366,5 +395,20 @@ export const FIELD_NAMES = {
   mood: 'Mood',
   highlight: 'Highlight',
   notes: 'Notes',
-  gratitude: 'Gratitude'
+  gratitude: 'Gratitude',
+  spent: 'Spent'
 } as const;
+
+/** The user's currency (his profile: Hong Kong). Display only; amounts are stored as plain numbers. */
+export const CURRENCY = 'HK$';
+
+/** "HK$38", "HK$12.50", "HK$1,200". */
+export function money(n: number): string {
+  return `${CURRENCY}${moneyNumber(n)}`;
+}
+
+/** The number alone ("38", "12.50", "1,200"), for layouts that set the currency apart. */
+export function moneyNumber(n: number): string {
+  const cents = Math.round(n * 100) % 100 !== 0;
+  return n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 });
+}

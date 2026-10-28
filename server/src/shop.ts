@@ -71,6 +71,7 @@ export function createShopService(deps: ShopDeps) {
               gratitude: r.gratitude,
               energy: r.day.energy ?? null,
               private: r.day.private === true,
+              spent: r.day.spent,
             });
           }
         } catch (e) {

@@ -77,6 +77,19 @@ export const rejectedSchema = z.looseObject({
   at: z.string().optional(),
 });
 
+/**
+ * One money entry on a day page (`spent:` list). A bare number (`- 38`) is accepted for hand edits.
+ * Read-side lenient on the note length (write routes enforce LIMITS); a negative amount still quarantines.
+ */
+export const spentSchema = z.preprocess(
+  (v) => (typeof v === "number" ? { amount: v } : v),
+  z.looseObject({
+    amount: z.number().min(0),
+    note: z.string().nullable().optional(),
+  }),
+);
+export type Spent = z.infer<typeof spentSchema>;
+
 export const daySchema = z.looseObject({
   schema: z.number().int().min(1).optional().default(1),
   date: dateStr,
@@ -89,6 +102,7 @@ export const daySchema = z.looseObject({
   generation: nullish(generationSchema),
   quests: z.array(questSchema).nullable().optional().transform((v) => v ?? []),
   rejected: z.array(rejectedSchema).nullable().optional().transform((v) => v ?? []),
+  spent: z.array(spentSchema).nullable().optional().transform((v) => v ?? []),
   mode: z.enum(MODES).optional(),
   backfilled: z.boolean().optional(),
   prompt_id: z.string().max(40).optional(),

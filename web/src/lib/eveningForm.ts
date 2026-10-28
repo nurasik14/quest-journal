@@ -6,7 +6,13 @@
  * - After a 412, the newer on-disk version becomes the new baseline: untouched fields adopt it,
  *   fields the user edited keep the user's text (and the panel shows the on-disk version next to them).
  */
-import type { EveningBody } from '../../../server/src/api-types';
+import type { EveningBody, SpentJson } from '../../../server/src/api-types';
+
+/** One money entry as the form holds it (the note is '' when there is none). */
+export interface SpentEntry {
+  amount: number;
+  note: string;
+}
 
 export interface EveningForm {
   satisfaction: number | null;
@@ -14,12 +20,36 @@ export interface EveningForm {
   highlight: string;
   notes: string;
   gratitude: string;
+  spent: SpentEntry[];
 }
 
-export const FORM_KEYS = ['satisfaction', 'mood', 'highlight', 'notes', 'gratitude'] as const;
+export const FORM_KEYS = ['satisfaction', 'mood', 'highlight', 'notes', 'gratitude', 'spent'] as const;
 export type FormKey = (typeof FORM_KEYS)[number];
 
-export const emptyForm = (): EveningForm => ({ satisfaction: null, mood: [], highlight: '', notes: '', gratitude: '' });
+export const emptyForm = (): EveningForm => ({ satisfaction: null, mood: [], highlight: '', notes: '', gratitude: '', spent: [] });
+
+/** The page's `spent:` list as form rows (a hand-written `- 38` arrives as `{ amount: 38 }`). */
+export function spentRows(list: readonly SpentJson[] | undefined | null): SpentEntry[] {
+  return (list ?? []).map((e) => ({ amount: e.amount, note: e.note ?? '' }));
+}
+
+/** Sum of the rows, to the cent. */
+export function spentTotal(rows: readonly { amount: number }[]): number {
+  return Math.round(rows.reduce((s, r) => s + r.amount, 0) * 100) / 100;
+}
+
+/**
+ * Parse what was typed in the amount box: "38", "38.5", "38,50", "HK$ 12". Returns null when it isn't
+ * a usable amount (empty, negative, more than 2 decimals' worth of nonsense, absurdly large).
+ */
+export function parseAmount(text: string): number | null {
+  let t = text.replace(/[^0-9.,]/g, '');
+  // "38,50" is a decimal comma; "1,200" is a thousands separator.
+  t = !t.includes('.') && /^\d+,\d{1,2}$/.test(t) ? t.replace(',', '.') : t.replace(/,/g, '');
+  if (!/^\d+(\.\d*)?$|^\.\d+$/.test(t)) return null;
+  const n = Math.round(Number(t) * 100) / 100;
+  return Number.isFinite(n) && n > 0 && n <= 10_000_000 ? n : null;
+}
 
 function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -36,6 +66,7 @@ export function saveBody(form: EveningForm, loaded: EveningForm): EveningBody {
   for (const k of changedKeys(form, loaded)) {
     if (k === 'mood') body.mood = [...form.mood];
     else if (k === 'satisfaction') body.satisfaction = form.satisfaction;
+    else if (k === 'spent') body.spent = form.spent.map((e) => (e.note.trim() ? { amount: e.amount, note: e.note.trim() } : { amount: e.amount }));
     else body[k] = form[k];
   }
   if (Object.keys(body).length === 0) body.satisfaction = form.satisfaction;
@@ -56,7 +87,7 @@ export function rebaseForm(
   theirs: EveningForm
 ): { form: EveningForm; conflicts: FormKey[]; updated: FormKey[] } {
   const edited = new Set(changedKeys(form, loaded));
-  const next: EveningForm = { ...theirs, mood: [...theirs.mood] };
+  const next: EveningForm = { ...theirs, mood: [...theirs.mood], spent: theirs.spent.map((e) => ({ ...e })) };
   const conflicts: FormKey[] = [];
   const updated: FormKey[] = [];
   for (const k of FORM_KEYS) {
@@ -67,6 +98,7 @@ export function rebaseForm(
     }
     if (k === 'mood') next.mood = [...form.mood];
     else if (k === 'satisfaction') next.satisfaction = form.satisfaction;
+    else if (k === 'spent') next.spent = form.spent.map((e) => ({ ...e }));
     else next[k] = form[k];
     if (changedOnDisk && !same(form[k], theirs[k])) conflicts.push(k);
   }
