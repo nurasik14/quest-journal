@@ -149,6 +149,8 @@ export interface DayJson {
 export interface SpentJson {
   amount: number;
   note?: string | null;
+  /** SPEND_CATEGORIES; missing or unknown = "other". */
+  category?: string | null;
 }
 
 export interface WeekJson {
@@ -368,4 +370,5 @@ export interface ApiErrorBody {
 }
 
 // ---------------------------------------------------------------- M6: the garden
+export type { SpendCategory } from "./domain";
 export type { CategoryStat, HeatmapDay, MonthAgo, PlotState, SpendingStats, Stats as StatsResponse } from "./stats";

@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { BossJson, DayJson, FileProblem, Job, QuestJson, TodayResponse, WeekJson } from "./api-types";
 import { addDays, isoWeek, isoWithOffset, isValidDate, logicalDate, weekdayName, type Clock } from "./clock";
 import type { Config } from "./config";
-import { FEEDBACK, LIMITS, questEarnings, REASON_CHIPS, REROLL_REASONS, STATUSES, type RerollReason } from "./domain";
+import { FEEDBACK, LIMITS, questEarnings, REASON_CHIPS, REROLL_REASONS, SPEND_CATEGORIES, STATUSES, type RerollReason, type SpendCategory } from "./domain";
 import { StoreError } from "./errors";
 import type { Generator } from "./generation";
 import type { Git } from "./git";
@@ -114,6 +114,7 @@ export const eveningBody = z.strictObject({
       z.strictObject({
         amount: z.number().finite().min(0).max(LIMITS.spentAmount),
         note: z.string().max(LIMITS.spentNote).optional(),
+        category: z.enum(SPEND_CATEGORIES).optional(),
       }),
     )
     .max(LIMITS.spentEntries)
@@ -121,17 +122,22 @@ export const eveningBody = z.strictObject({
 });
 export type EveningInput = z.infer<typeof eveningBody>;
 
-/** Write-side money entries: amounts rounded to cents, notes trimmed, an empty note left out of the file. */
-export function normalizeSpent(incoming: NonNullable<EveningInput["spent"]>): { amount: number; note?: string }[] {
+/**
+ * Write-side money entries: amounts rounded to cents, notes trimmed, an empty note left out of the file.
+ * A category is written when one was sent.
+ */
+export function normalizeSpent(
+  incoming: NonNullable<EveningInput["spent"]>,
+): { amount: number; note?: string; category?: SpendCategory }[] {
   return incoming.map((e) => {
     const amount = Math.round(e.amount * 100) / 100;
     const note = (e.note ?? "").trim();
-    return note ? { amount, note } : { amount };
+    return { amount, ...(note ? { note } : {}), ...(e.category ? { category: e.category } : {}) };
   });
 }
 
-const spentKey = (xs: readonly { amount: number; note?: string | null | undefined }[]) =>
-  JSON.stringify(xs.map((x) => [x.amount, (x.note ?? "").trim()]));
+const spentKey = (xs: readonly { amount: number; note?: string | null | undefined; category?: string | null | undefined }[]) =>
+  JSON.stringify(xs.map((x) => [x.amount, (x.note ?? "").trim(), x.category ?? null]));
 
 /**
  * Write-side mood normalization: trim, lowercase, drop empties, dedupe (case-insensitive). A tag that is

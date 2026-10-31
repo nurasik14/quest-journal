@@ -3,7 +3,9 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { spendingStats, type StatsDay } from "../src/stats";
-import { parseAmount, saveBody, emptyForm, spentRows, spentTotal } from "../../web/src/lib/eveningForm";
+import { parseAmount, saveBody, emptyForm, spentRows, spentTotal, SPEND_CATEGORIES as WEB_SPEND_CATEGORIES, spendCategoryOf as webSpendCategoryOf } from "../../web/src/lib/eveningForm";
+import { SPEND_CATEGORIES, spendCategoryOf } from "../src/domain";
+import { COPY } from "../../web/src/lib/copy";
 import { cleanupTempDirs, makeTestApp, req, type TestApp } from "./helpers";
 
 afterAll(cleanupTempDirs);
@@ -70,6 +72,53 @@ describe("evening PUT with spent", () => {
   });
 });
 
+describe("spending categories", () => {
+  test("the web mirror matches the server list, every kind has a label, and both read rules agree", () => {
+    expect([...WEB_SPEND_CATEGORIES]).toEqual([...SPEND_CATEGORIES]);
+    for (const c of SPEND_CATEGORIES) expect(COPY.spendCategory[c]).toBeTruthy();
+    for (const v of [undefined, null, "", "cafe", " Cafe ", "rent", 5]) expect(webSpendCategoryOf(v)).toBe(spendCategoryOf(v));
+  });
+
+  test("PUT stores the category; an unknown one is a 400; a category change alone is a real save", async () => {
+    const t = await app();
+    const r = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 60, note: "film", category: "entertainment" }, { amount: 9 }] }, { "if-match": "*" });
+    expect(r.status).toBe(200);
+    expect(r.data.day.spent).toEqual([{ amount: 60, note: "film", category: "entertainment" }, { amount: 9 }]);
+    const text = await readFile(join(t.dataDir, "days", `${TODAY}.md`), "utf8");
+    expect(text).toContain("category: entertainment");
+    const changed = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 60, note: "film", category: "subscription" }, { amount: 9 }] }, { "if-match": r.etag! });
+    expect(changed.status).toBe(200);
+    expect(changed.etag).not.toBe(r.etag);
+    const bad = await call(t, "PUT", `/api/days/${TODAY}/evening`, { spent: [{ amount: 1, category: "rent" }] }, { "if-match": "*" });
+    expect(bad.status).toBe(400);
+  });
+
+  test("a hand-written unknown category reads fine and counts as other", async () => {
+    const t = await app();
+    await writeFile(join(t.dataDir, "days", `${TODAY}.md`), `---\ndate: ${TODAY}\nspent:\n  - amount: 20\n    category: rent\n  - amount: 5\n    category: Grocery\n---\n`);
+    const r = await call(t, "GET", `/api/stats?from=2026-10-19&to=${TODAY}`);
+    expect(r.status).toBe(200);
+    expect(r.data.spending.by_category).toEqual([
+      { category: "other", amount: 20, count: 1 },
+      { category: "grocery", amount: 5, count: 1 },
+    ]);
+  });
+
+  test("by_category sums the range only, largest first; entries without a category are other", () => {
+    const days = [
+      sd("2026-09-30", [{ amount: 500, category: "electronics" }]),
+      sd("2026-10-20", [{ amount: 10, note: "tea", category: "cafe" }, { amount: 30, category: "grocery" }]),
+      sd("2026-10-25", [{ amount: 5, note: "Tea", category: "cafe" }, { amount: 1 }]),
+    ];
+    expect(spendingStats(days, TODAY, "2026-10-19", TODAY).by_category).toEqual([
+      { category: "grocery", amount: 30, count: 1 },
+      { category: "cafe", amount: 15, count: 2 },
+      { category: "other", amount: 1, count: 1 },
+    ]);
+    expect(spendingStats([sd(TODAY, [])], TODAY, "2026-10-19", TODAY).by_category).toEqual([]);
+  });
+});
+
 describe("spendingStats (pure)", () => {
   const days = [sd("2026-09-30", [{ amount: 500 }]), sd("2026-10-20", [{ amount: 10, note: "tea" }]), sd("2026-10-25", [{ amount: 5.25, note: "Tea" }, { amount: 1 }])];
 
@@ -105,9 +154,13 @@ describe("evening form helpers", () => {
 
   test("saveBody sends the whole spent list when it changed, notes trimmed, empty notes left out", () => {
     const loaded = emptyForm();
-    const form = { ...loaded, spent: [{ amount: 5, note: " bus " }, { amount: 2, note: "" }] };
-    expect(saveBody(form, loaded)).toEqual({ spent: [{ amount: 5, note: "bus" }, { amount: 2 }] });
-    expect(spentRows([{ amount: 3, note: null }])).toEqual([{ amount: 3, note: "" }]);
+    const form = { ...loaded, spent: [{ amount: 5, note: " bus ", category: "other" as const }, { amount: 2, note: "", category: "cafe" as const }] };
+    expect(saveBody(form, loaded)).toEqual({ spent: [{ amount: 5, note: "bus", category: "other" }, { amount: 2, category: "cafe" }] });
+    expect(spentRows([{ amount: 3, note: null }])).toEqual([{ amount: 3, note: "", category: "other" }]);
+    expect(spentRows([{ amount: 3, category: "Grocery" }, { amount: 1, category: "rent" }])).toEqual([
+      { amount: 3, note: "", category: "grocery" },
+      { amount: 1, note: "", category: "other" },
+    ]);
     expect(spentTotal([{ amount: 0.1 }, { amount: 0.2 }])).toBe(0.3);
   });
 });

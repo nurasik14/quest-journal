@@ -15,6 +15,7 @@
   import Quarantine from '../lib/components/Quarantine.svelte';
   import { COPY, CURRENCY, money, moneyNumber } from '../lib/copy';
   import { buildRows, canWrite, spendBars, shownCategories, dateParam, dayMonth, gardenLevel, plotLabel, rangeWindow, shortDate, type GardenRange } from '../lib/garden';
+  import { spendCategoryOf } from '../lib/eveningForm';
   import { prettyDate } from '../lib/questView';
   import { router } from '../lib/router.svelte';
   import { categoryInfo, HerbRating, Icon, PAGE_KANJI, PageTitle, ScrollCard, STATUS, Sticker } from '../lib/theme';
@@ -42,6 +43,7 @@
   const bars = $derived(stats ? spendBars(stats.heatmap, stats.today) : []);
   const maxBar = $derived(Math.max(0, ...bars.map((b) => b.amount)));
   const maxTop = $derived(Math.max(1, ...(spending?.top ?? []).map((t) => t.amount)));
+  const maxKind = $derived(Math.max(1, ...(spending?.by_category ?? []).map((t) => t.amount)));
   const rangeLabel = $derived(range === '4w' ? COPY.gardenRange4w : COPY.gardenRange3m);
 
   async function load() {
@@ -296,6 +298,20 @@
           {#if spending.biggest_day}
             <p class="caption">{COPY.gardenMoneyBiggest(money(spending.biggest_day.amount), shortDate(spending.biggest_day.date))}</p>
           {/if}
+          {#if spending.by_category?.length}
+            <h3>{COPY.gardenMoneyKinds}</h3>
+            <ul class="money-top money-kinds">
+              {#each spending.by_category as k (k.category)}
+                <li>
+                  <div class="cat-line">
+                    <span>{COPY.spendCategory[k.category] ?? k.category}</span>
+                    <span class="cat-nums"><span class="muted">{COPY.gardenMoneyTimes(k.count)}</span><span class="money-amt">{money(k.amount)}</span></span>
+                  </div>
+                  <span class="track" aria-hidden="true"><span class="bar money-bar" style:width="{(k.amount / maxKind) * 100}%"></span></span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
           {#if spending.top.length}
             <h3>{COPY.gardenMoneyWhere}</h3>
             <ul class="money-top">
@@ -374,7 +390,10 @@
       {#if d.spent?.length}
         <h3>{COPY.gardenSpentDay} · {money(d.spent.reduce((s, e) => s + e.amount, 0))}</h3>
         <ul class="sheet-spent">
-          {#each d.spent as e, i (i)}<li><span class:muted={!e.note}>{e.note || COPY.spentNoNote}</span><span>{money(e.amount)}</span></li>{/each}
+          {#each d.spent as e, i (i)}<li
+              ><span><span class:muted={!e.note}>{e.note || COPY.spentNoNote}</span> <span class="muted small">· {COPY.spendCategory[spendCategoryOf(e.category)]}</span></span
+              ><span>{money(e.amount)}</span></li
+            >{/each}
         </ul>
       {/if}
       {#if d.notes.trim()}<p class="notes">{d.notes}</p>{/if}

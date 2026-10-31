@@ -20,6 +20,7 @@
     parseAmount,
     rebaseForm,
     saveBody,
+    SPEND_CATEGORIES,
     spentRows,
     spentTotal,
     type EveningForm as Form,
@@ -72,6 +73,7 @@
   /** The money row being typed (not in the form until "Add", Enter, or the seal). */
   let newAmount = $state('');
   let newNote = $state('');
+  let newCategory = $state<Form['spent'][number]['category']>('other');
   let amountError = $state(false);
   const pendingSpent = $derived(newAmount.trim() !== '');
 
@@ -313,9 +315,10 @@
       amountError = newAmount.trim() !== '';
       return newAmount.trim() === '';
     }
-    form.spent = [...form.spent, { amount, note: newNote.trim().slice(0, 80) }];
+    form.spent = [...form.spent, { amount, note: newNote.trim().slice(0, 80), category: newCategory }];
     newAmount = '';
     newNote = '';
+    newCategory = 'other';
     amountError = false;
     return true;
   }
@@ -415,7 +418,9 @@
   }
 
   function spentText(v: Form['spent'] | undefined) {
-    return v && v.length ? v.map((e) => `${money(e.amount)}${e.note ? ` ${e.note}` : ''}`).join(', ') : '—';
+    return v && v.length
+      ? v.map((e) => `${money(e.amount)}${e.note ? ` ${e.note}` : ''} (${COPY.spendCategory[e.category] ?? e.category})`).join(', ')
+      : '—';
   }
 </script>
 
@@ -591,7 +596,16 @@
         <ul class="spent-list">
           {#each form.spent as e, i (i)}
             <li>
-              <span class="spent-note" class:muted={!e.note}>{e.note || COPY.spentNoNote}</span>
+              <span class="spent-what">
+                <span class="spent-note" class:muted={!e.note}>{e.note || COPY.spentNoNote}</span>
+                <select
+                  class="spent-cat-row"
+                  aria-label={COPY.spentCategoryOf(`${money(e.amount)}${e.note ? ` ${e.note}` : ''}`)}
+                  bind:value={form.spent[i]!.category}
+                >
+                  {#each SPEND_CATEGORIES as c (c)}<option value={c}>{COPY.spendCategory[c]}</option>{/each}
+                </select>
+              </span>
               <span class="spent-amt">{money(e.amount)}</span>
               <button
                 class="qj-btn qj-btn--quiet qj-btn--sm spent-x"
@@ -641,7 +655,11 @@
             }
           }}
         />
-        <button class="qj-btn qj-btn--sm" type="button" disabled={newAmount.trim() === ''} onclick={addSpent}>{COPY.spentAdd}</button>
+        <label class="qj-sr-only" for="spent-category">{COPY.spentCategoryLabel}</label>
+        <select id="spent-category" class="qj-input spent-cat-in" bind:value={newCategory}>
+          {#each SPEND_CATEGORIES as c (c)}<option value={c}>{COPY.spendCategory[c]}</option>{/each}
+        </select>
+        <button class="qj-btn qj-btn--sm spent-add-btn" type="button" disabled={newAmount.trim() === ''} onclick={addSpent}>{COPY.spentAdd}</button>
       </div>
       {#if amountError}<p class="small spent-error" id="spent-error" role="alert">{COPY.spentBadAmount}</p>{/if}
     </fieldset>
@@ -767,10 +785,27 @@
     padding-bottom: var(--sp-1);
     border-bottom: 1px dashed var(--line);
   }
-  .spent-note {
+  .spent-what {
     flex: 1;
     min-width: 0;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+  }
+  .spent-note {
+    min-width: 0;
     overflow-wrap: anywhere;
+  }
+  /* The row's kind: a small chip-like picker, so an older entry can be sorted later. */
+  .spent-cat-row {
+    max-width: 100%;
+    min-height: 32px;
+    padding: 2px var(--sp-2);
+    border: var(--bw-hair) solid var(--line-strong);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--ink-muted);
+    font-size: var(--fs-sm);
   }
   .spent-amt {
     font-variant-numeric: tabular-nums;
@@ -785,17 +820,29 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
+  /* Amount · What for on the first line, Type · Add on the second (fits 320 px). */
   .spent-add {
-    display: flex;
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      'amt note note'
+      'cat cat add';
     gap: var(--sp-2);
   }
   .spent-amount {
-    flex: 0 0 6.5rem;
+    grid-area: amt;
     min-width: 0;
   }
   .spent-note-in {
-    flex: 1;
+    grid-area: note;
     min-width: 0;
+  }
+  .spent-cat-in {
+    grid-area: cat;
+    min-width: 0;
+  }
+  .spent-add-btn {
+    grid-area: add;
   }
   .spent-error {
     margin: 0;

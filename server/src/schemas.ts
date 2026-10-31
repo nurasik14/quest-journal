@@ -86,6 +86,8 @@ export const spentSchema = z.preprocess(
   z.looseObject({
     amount: z.number().min(0),
     note: z.string().nullable().optional(),
+    /** Kind of spending (SPEND_CATEGORIES); lenient here, unknown values count as "other" in the stats. */
+    category: z.string().nullable().optional(),
   }),
 );
 export type Spent = z.infer<typeof spentSchema>;

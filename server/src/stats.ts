@@ -8,7 +8,7 @@
  * (as `let_go`) but the UI never renders them; the order is the fixed CATEGORIES order, never "best first".
  */
 import { addDays } from "./clock";
-import { CARE_PATTERN, CATEGORIES, STATS_MIN_RATED, type Category } from "./domain";
+import { CARE_PATTERN, CATEGORIES, SPEND_CATEGORIES, spendCategoryOf, STATS_MIN_RATED, type Category, type SpendCategory } from "./domain";
 import { dayCounts, type BrokenInput, type DayInput, type Economy } from "./economy";
 import type { Warning } from "./errors";
 
@@ -18,7 +18,7 @@ export interface StatsDay extends DayInput {
   energy?: number | null;
   private?: boolean;
   /** Money noted on the page (`spent:`). */
-  spent?: readonly { amount: number; note?: string | null | undefined }[];
+  spent?: readonly { amount: number; note?: string | null | undefined; category?: string | null | undefined }[];
 }
 
 /**
@@ -66,6 +66,11 @@ export interface SpendingStats {
   biggest_day: { date: string; amount: number } | null;
   /** Where it went in the range: entries grouped by note (case-insensitive), largest first, at most SPENDING_TOP. */
   top: { note: string | null; amount: number; count: number }[];
+  /**
+   * The range by kind of spending (entries with no or an unknown category count as "other"), largest
+   * first, only kinds with at least one entry.
+   */
+  by_category: { category: SpendCategory; amount: number; count: number }[];
   /** Anything ever noted, on any page. */
   any: boolean;
 }
@@ -147,6 +152,7 @@ export function spendingStats(days: readonly StatsDay[], today: string, from: st
   let biggest: { date: string; amount: number } | null = null;
   let any = false;
   const groups = new Map<string, { note: string | null; amount: number; count: number }>();
+  const kinds = new Map<SpendCategory, { amount: number; count: number }>();
   for (const d of days) {
     if (d.date > today) continue;
     const list = d.spent ?? [];
@@ -169,6 +175,11 @@ export function spendingStats(days: readonly StatsDay[], today: string, from: st
       if (!g) groups.set(key, (g = { note: note === "" ? null : note, amount: 0, count: 0 }));
       g.amount += Number.isFinite(e.amount) ? e.amount : 0;
       g.count++;
+      const kind = spendCategoryOf(e.category);
+      let k = kinds.get(kind);
+      if (!k) kinds.set(kind, (k = { amount: 0, count: 0 }));
+      k.amount += Number.isFinite(e.amount) ? e.amount : 0;
+      k.count++;
     }
   }
   let span = 0;
@@ -186,6 +197,9 @@ export function spendingStats(days: readonly StatsDay[], today: string, from: st
       .map((g) => ({ ...g, amount: round2(g.amount) }))
       .sort((a, b) => b.amount - a.amount || b.count - a.count)
       .slice(0, SPENDING_TOP),
+    by_category: [...kinds.entries()]
+      .map(([category, k]) => ({ category, amount: round2(k.amount), count: k.count }))
+      .sort((a, b) => b.amount - a.amount || b.count - a.count || SPEND_CATEGORIES.indexOf(a.category) - SPEND_CATEGORIES.indexOf(b.category)),
     any,
   };
 }

@@ -183,6 +183,20 @@ export const LIMITS = {
   spentAmount: 10_000_000,
 } as const;
 
+/**
+ * What kind of spending a money entry is (`spent[].category`). An entry without one (older pages, hand
+ * edits) or with an unknown value counts as "other". Mirrored by SPEND_CATEGORIES in
+ * web/src/lib/eveningForm.ts (the web imports types only); spending.test.ts checks the two match.
+ */
+export const SPEND_CATEGORIES = ["entertainment", "grocery", "cafe", "electronics", "subscription", "other"] as const;
+export type SpendCategory = (typeof SPEND_CATEGORIES)[number];
+
+/** Read-side: any stored value → a known category ("other" when missing or unknown). */
+export function spendCategoryOf(v: unknown): SpendCategory {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return (SPEND_CATEGORIES as readonly string[]).includes(s) ? (s as SpendCategory) : "other";
+}
+
 /** How far back pool titles are avoided (architecture.md §2.1). */
 export const RECENT_TITLE_DAYS = 14;
 
